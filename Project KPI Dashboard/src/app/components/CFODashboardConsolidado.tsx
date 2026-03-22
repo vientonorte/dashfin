@@ -1,12 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { Label } from './ui/label';
 import { Progress } from './ui/progress';
 import { Skeleton } from './ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { BusinessLineCard } from './ui/BusinessLineCard';
 import { 
   BarChart3, 
   TrendingUp, 
@@ -27,7 +27,11 @@ import {
   Webhook, 
   Zap, 
   Globe, 
-  Eye 
+  Eye,
+  ArrowRight,
+  CheckCircle2,
+  Upload,
+  Activity
 } from 'lucide-react';
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useDashboard } from '../contexts/DashboardContext';
@@ -63,6 +67,18 @@ export function CFODashboardConsolidado() {
   const [mostrarDiario, setMostrarDiario] = useState(false);
   const [mostrarConfigAvanzada, setMostrarConfigAvanzada] = useState(false);
   const [mostrarMetasSecundarias, setMostrarMetasSecundarias] = useState(false);
+
+  // Scroll detection for sticky bar smooth appearance
+  const [isSticky, setIsSticky] = useState(false);
+  const stickyBarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsSticky(window.scrollY > 80);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // CÁLCULOS
   const formatChileno = (valor: number) => {
@@ -157,7 +173,15 @@ export function CFODashboardConsolidado() {
 
 
         {/* BARRA STICKY DE ROL */}
-        <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-xl shadow-sm px-4 py-2 flex items-center justify-between">
+        <div
+          ref={stickyBarRef}
+          className={`sticky top-0 z-40 border border-gray-200 rounded-xl px-4 py-2 flex items-center justify-between
+            transition-all duration-300 ease-in-out
+            ${isSticky
+              ? 'bg-white/95 backdrop-blur-md shadow-md scale-[1.002]'
+              : 'bg-white/90 backdrop-blur-sm shadow-sm'
+            }`}
+        >
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Vista activa</span>
           <div className="flex gap-1.5">
             <Button
@@ -439,38 +463,93 @@ export function CFODashboardConsolidado() {
               </>
             ) : (
               <Card className="border-2 border-dashed border-gray-300 bg-white">
-                <CardContent className="flex flex-col items-center justify-center py-16 gap-6 text-center">
-                  <div className="h-20 w-20 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center">
-                    <Database className="h-10 w-10 text-blue-500" />
+                <CardContent className="flex flex-col items-center justify-center py-12 gap-8 text-center">
+                  {/* Hero icon */}
+                  <div className="h-20 w-20 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center shadow-inner">
+                    <Activity className="h-10 w-10 text-blue-500" />
                   </div>
+
+                  {/* Headline */}
                   <div className="space-y-2 max-w-sm">
-                    <h2 className="text-2xl font-bold text-gray-800">Aún no hay datos cargados</h2>
+                    <h2 className="text-2xl font-bold text-gray-800">Comienza tu análisis financiero</h2>
                     <p className="text-gray-500 text-sm">
-                      Ingresa el primer mes de ventas para ver tus KPIs, payback y el estado Genio/Figura en tiempo real.
+                      Ingresa el primer mes de ventas para ver tus KPIs, payback y estado Genio/Figura en tiempo real.
                     </p>
                   </div>
-                  <div className="flex flex-col sm:flex-row items-center gap-3">
-                    <Button
-                      size="lg"
-                      className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8"
-                      onClick={() => handleTabChange('datos')}
-                    >
-                      <Database className="mr-2 h-5 w-5" />
-                      Cargar primer mes →
-                    </Button>
-                    <p className="text-xs text-gray-400">CSV, Google Sheets o ingreso manual</p>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 mt-2 w-full max-w-sm">
+
+                  {/* 3-step guide */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-lg text-left">
                     {[
-                      { icon: '☕', label: 'Cafetería', color: 'bg-orange-50 border-orange-200' },
-                      { icon: '💻', label: 'Hotdesk', color: 'bg-blue-50 border-blue-200' },
-                      { icon: '📋', label: 'Asesorías', color: 'bg-purple-50 border-purple-200' },
-                    ].map(({ icon, label, color }) => (
-                      <div key={label} className={`rounded-lg border-2 ${color} p-3 flex flex-col items-center gap-1`}>
-                        <span className="text-2xl">{icon}</span>
+                      {
+                        step: 1,
+                        icon: Upload,
+                        title: 'Carga datos',
+                        desc: 'CSV, Google Sheets o ingreso manual',
+                        color: 'bg-green-50 border-green-200 text-green-700',
+                        iconBg: 'bg-green-100',
+                        iconColor: 'text-green-600',
+                      },
+                      {
+                        step: 2,
+                        icon: BarChart3,
+                        title: 'Revisa KPIs',
+                        desc: 'Margen, payback y mix de negocio',
+                        color: 'bg-blue-50 border-blue-200 text-blue-700',
+                        iconBg: 'bg-blue-100',
+                        iconColor: 'text-blue-600',
+                      },
+                      {
+                        step: 3,
+                        icon: CheckCircle2,
+                        title: 'Decide y actúa',
+                        desc: 'Alertas automáticas y reportes ejecutivos',
+                        color: 'bg-purple-50 border-purple-200 text-purple-700',
+                        iconBg: 'bg-purple-100',
+                        iconColor: 'text-purple-600',
+                      },
+                    ].map(({ step, icon: Icon, title, desc, color, iconBg, iconColor }) => (
+                      <div key={step} className={`rounded-xl border-2 ${color} p-4 flex flex-col gap-3`}>
+                        <div className="flex items-center gap-2">
+                          <span className={`rounded-lg p-1.5 ${iconBg}`}>
+                            <Icon className={`h-4 w-4 ${iconColor}`} />
+                          </span>
+                          <span className="text-xs font-bold uppercase tracking-wide opacity-60">Paso {step}</span>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm">{title}</p>
+                          <p className="text-xs opacity-75 mt-0.5">{desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Business lines preview */}
+                  <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
+                    {[
+                      { icon: Coffee, label: 'Cafetería', color: 'bg-orange-50 border-orange-200', iconBg: 'bg-orange-100', iconColor: 'text-orange-600' },
+                      { icon: Laptop, label: 'Hotdesk', color: 'bg-blue-50 border-blue-200', iconBg: 'bg-blue-100', iconColor: 'text-blue-600' },
+                      { icon: Briefcase, label: 'Asesorías', color: 'bg-purple-50 border-purple-200', iconBg: 'bg-purple-100', iconColor: 'text-purple-600' },
+                    ].map(({ icon: Icon, label, color, iconBg, iconColor }) => (
+                      <div key={label} className={`rounded-lg border-2 ${color} p-3 flex flex-col items-center gap-2`}>
+                        <span className={`rounded-lg p-2 ${iconBg}`}>
+                          <Icon className={`h-5 w-5 ${iconColor}`} />
+                        </span>
                         <span className="text-xs font-medium text-gray-600">{label}</span>
                       </div>
                     ))}
+                  </div>
+
+                  {/* Primary CTA */}
+                  <div className="flex flex-col sm:flex-row items-center gap-3">
+                    <Button
+                      size="lg"
+                      className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 transition-all duration-200 hover:shadow-lg hover:scale-[1.02]"
+                      onClick={() => handleTabChange('datos')}
+                    >
+                      <Database className="mr-2 h-5 w-5" />
+                      Cargar primer mes
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -555,53 +634,33 @@ export function CFODashboardConsolidado() {
                 </CardHeader>
                 <CardContent className="pt-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Card className="border-l-4 border-orange-500">
-                      <CardHeader>
-                        <div className="flex items-center gap-2">
-                          <Coffee className="h-5 w-5 text-orange-600" />
-                          <CardTitle className="text-base">Cafetería</CardTitle>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold text-orange-600">${formatChileno(metricas.cafe)}</div>
-                        <Badge className="mt-2 bg-orange-500 text-white">Margen: 68%</Badge>
-                        <p className="text-xs text-gray-600 mt-1">
-                          {((metricas.cafe / metricas.total_venta) * 100).toFixed(1)}% del total
-                        </p>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="border-l-4 border-blue-500">
-                      <CardHeader>
-                        <div className="flex items-center gap-2">
-                          <Laptop className="h-5 w-5 text-blue-600" />
-                          <CardTitle className="text-base">Hotdesk</CardTitle>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold text-blue-600">${formatChileno(metricas.hotdesk)}</div>
-                        <Badge className="mt-2 bg-blue-500 text-white">Margen: 92.5%</Badge>
-                        <p className="text-xs text-gray-600 mt-1">
-                          {((metricas.hotdesk / metricas.total_venta) * 100).toFixed(1)}% del total
-                        </p>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="border-l-4 border-purple-500">
-                      <CardHeader>
-                        <div className="flex items-center gap-2">
-                          <Briefcase className="h-5 w-5 text-purple-600" />
-                          <CardTitle className="text-base">Asesorías</CardTitle>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold text-purple-600">${formatChileno(metricas.asesorias)}</div>
-                        <Badge className="mt-2 bg-purple-500 text-white">Margen: 100%</Badge>
-                        <p className="text-xs text-gray-600 mt-1">
-                          {((metricas.asesorias / metricas.total_venta) * 100).toFixed(1)}% del total
-                        </p>
-                      </CardContent>
-                    </Card>
+                    <BusinessLineCard
+                      icon={Coffee}
+                      label="Cafetería"
+                      value={metricas.cafe}
+                      marginPercent="68%"
+                      sharePercent={(metricas.cafe / metricas.total_venta) * 100}
+                      accentColor="orange"
+                      formatter={(n) => `$${formatChileno(n)}`}
+                    />
+                    <BusinessLineCard
+                      icon={Laptop}
+                      label="Hotdesk"
+                      value={metricas.hotdesk}
+                      marginPercent="92.5%"
+                      sharePercent={(metricas.hotdesk / metricas.total_venta) * 100}
+                      accentColor="blue"
+                      formatter={(n) => `$${formatChileno(n)}`}
+                    />
+                    <BusinessLineCard
+                      icon={Briefcase}
+                      label="Asesorías"
+                      value={metricas.asesorias}
+                      marginPercent="100%"
+                      sharePercent={(metricas.asesorias / metricas.total_venta) * 100}
+                      accentColor="purple"
+                      formatter={(n) => `$${formatChileno(n)}`}
+                    />
                   </div>
                 </CardContent>
               </Card>
