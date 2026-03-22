@@ -71,8 +71,6 @@ export function GenioyFigura() {
   };
   const UMBRAL_GENIO_UTILIDAD_DEFAULT = config.umbral_genio;
 
-  if (!can('view:payback_analysis')) return null;
-
   const [rowData, setRowData] = useState<RowData>({
     fecha: '',
     venta: 0,
@@ -88,6 +86,9 @@ export function GenioyFigura() {
   // Umbral configurable
   const [umbralGenio, setUmbralGenio] = useState(UMBRAL_GENIO_UTILIDAD_DEFAULT);
   const [umbralInput, setUmbralInput] = useState(formatChileno(UMBRAL_GENIO_UTILIDAD_DEFAULT));
+
+  // Role guard — after all hooks
+  if (!can('view:payback_analysis')) return null;
 
   const calcularRevPSMDesdeVenta = (venta: number): number => {
     return Math.round(venta / LOCAL_INFO.metros_cuadrados);

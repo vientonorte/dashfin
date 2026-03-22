@@ -128,7 +128,7 @@ export async function fetchSheetData(config: BusinessConfig): Promise<RawSheetRo
 // CONVERT RAW ROWS TO DatoDiario (for DashboardContext)
 // ============================================================================
 
-export function rawRowsToDatosDiarios(rows: RawSheetRow[]): DatoDiario[] {
+export function rawRowsToDatosDiarios(rows: RawSheetRow[], metrosCuadrados: number): DatoDiario[] {
   return rows.map((row) => {
     const ventaTotal = row.venta_cafe + row.venta_hotdesk + row.venta_asesorias;
     const gastoTotal = row.gasto_insumos + row.gasto_staff_fijo;
@@ -140,7 +140,7 @@ export function rawRowsToDatosDiarios(rows: RawSheetRow[]): DatoDiario[] {
       gasto_insumos: row.gasto_insumos,
       gasto_staff_fijo: row.gasto_staff_fijo,
       utilidad_neta: ventaTotal - gastoTotal,
-      revpsm: ventaTotal / 25,
+      revpsm: ventaTotal / metrosCuadrados,
     };
   });
 }

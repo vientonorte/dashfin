@@ -33,7 +33,7 @@ export function SaludOperativa() {
 
   const margenNeto = ultimo.margen_neto_percent;
   const revpsm = ultimo.revpsm_clp_m2;
-  const ticketCafe = ultimo.venta_cafe_clp > 0 ? ultimo.venta_cafe_clp / 100 : 0; // approx per tx
+  const ticketCafe = ultimo.venta_cafe_clp > 0 ? ultimo.venta_cafe_clp / 100 : 0; // Approx: assumes ~100 daily transactions
   const ventaTotal = ultimo.venta_total_clp;
 
   const items: SaludItem[] = [

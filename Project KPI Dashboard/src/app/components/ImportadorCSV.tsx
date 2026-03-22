@@ -25,10 +25,6 @@ export function ImportadorCSV() {
   const UMBRAL_GENIO = config.umbral_genio;
 
   const { registros, setRegistros } = useDashboard();
-
-  if (!can('edit:business_data')) {
-    return <AccessDenied message="Solo el administrador puede importar datos." />;
-  }
   
   const [processing, setProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -37,6 +33,11 @@ export function ImportadorCSV() {
   const [erroresValidacion, setErroresValidacion] = useState<string[]>([]);
   const [advertenciasValidacion, setAdvertenciasValidacion] = useState<string[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
+
+  // Role guard — after all hooks
+  if (!can('edit:business_data')) {
+    return <AccessDenied message="Solo el administrador puede importar datos." />;
+  }
 
   // US-004: Descargar Template CSV mejorado
   const descargarTemplateMejorado = () => {

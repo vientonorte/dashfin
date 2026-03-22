@@ -52,15 +52,16 @@ export function AnalisisCFO() {
   const [tipoAnalisis, setTipoAnalisis] = useState<'margenes' | 'revpsm' | 'mix' | 'escenarios'>('margenes');
   const [loading, setLoading] = useState(true);
 
-  if (!can('view:financial_analysis')) {
-    return <AccessDenied message="Solo disponible para CFO / Admin" />;
-  }
-
   // US-011: Simular carga inicial con useEffect
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 800);
     return () => clearTimeout(timer);
   }, []);
+
+  // Role guard — after all hooks
+  if (!can('view:financial_analysis')) {
+    return <AccessDenied message="Solo disponible para CFO / Admin" />;
+  }
 
   // US-011: Loading State
   if (loading) {

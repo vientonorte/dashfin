@@ -90,8 +90,8 @@ const ROLE_STORAGE_KEY = 'dashfin_role';
 function loadRoleFromStorage(): RoleName {
   try {
     const stored = localStorage.getItem(ROLE_STORAGE_KEY);
-    if (stored && (stored === 'admin' || stored === 'gerente' || stored === 'barista1' || stored === 'barista2')) {
-      return stored;
+    if (stored && stored in ROLE_PERMISSIONS) {
+      return stored as RoleName;
     }
   } catch {
     // ignore
