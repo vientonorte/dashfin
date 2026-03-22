@@ -1,40 +1,37 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { Progress } from './ui/progress';
 import { Skeleton } from './ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  DollarSign, 
-  Wallet, 
-  Database, 
-  FileText, 
-  Settings, 
-  Calendar, 
-  AlertTriangle, 
-  Target, 
-  Coffee, 
-  Laptop, 
-  Briefcase, 
-  Sparkles, 
-  ChevronUp, 
-  ChevronDown, 
-  Webhook, 
-  Zap, 
-  Globe, 
-  Eye 
+import {
+  BarChart3,
+  TrendingUp,
+  DollarSign,
+  Wallet,
+  Database,
+  FileText,
+  Calendar,
+  Target,
+  Coffee,
+  Laptop,
+  Briefcase,
+  Sparkles,
+  ChevronUp,
+  ChevronDown,
+  Webhook,
+  Zap,
+  Globe,
 } from 'lucide-react';
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useDashboard } from '../contexts/DashboardContext';
 import { TutorialMakeGoogleSheets } from './TutorialMakeGoogleSheets';
 import { GuiaWebhookMake } from './GuiaWebhookMake';
 import { IntegracionB2C } from './IntegracionB2C';
-import { AnalisisUXAnalisis } from './AnalisisUXAnalisis';
 import { AnalisisCFO } from './AnalisisCFO';
 import { GenioyFigura } from './GenioyFigura';
 import { MetasPorRol } from './MetasPorRol';
@@ -52,6 +49,49 @@ interface VentaData {
   margenNeto: number;
 }
 
+function AnalisisSection({
+  defaultOpen,
+  border,
+  headerBg,
+  icon,
+  titulo,
+  descripcion,
+  children,
+}: {
+  defaultOpen: boolean;
+  border: string;
+  headerBg: string;
+  icon: React.ReactNode;
+  titulo: string;
+  descripcion: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <Card className={`border-2 ${border}`}>
+        <CollapsibleTrigger asChild>
+          <CardHeader className={`${headerBg} cursor-pointer select-none`}>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                {icon}
+                {titulo}
+              </CardTitle>
+              {open ? <ChevronUp className="h-5 w-5 text-gray-500 flex-shrink-0" /> : <ChevronDown className="h-5 w-5 text-gray-500 flex-shrink-0" />}
+            </div>
+            <CardDescription>{descripcion}</CardDescription>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent className="pt-4">
+            {children}
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
+  );
+}
+
 export function CFODashboardConsolidado() {
   const { registros } = useDashboard();
   const [mesFiltro, setMesFiltro] = useState<string>('todos');
@@ -61,6 +101,13 @@ export function CFODashboardConsolidado() {
   // Estado de secciones colapsables
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mostrarDiario, setMostrarDiario] = useState(false);
+
+  const handleRolChange = (nuevoRol: 'cfo' | 'socio-gerente' | 'colaborador') => {
+    setRolFiltro(nuevoRol);
+    if (nuevoRol === 'colaborador' && activeTab === 'config') {
+      setActiveTab('dashboard');
+    }
+  };
   const [mostrarConfigAvanzada, setMostrarConfigAvanzada] = useState(false);
   const [mostrarMetasSecundarias, setMostrarMetasSecundarias] = useState(false);
 
@@ -77,13 +124,16 @@ export function CFODashboardConsolidado() {
     const cafe = registros.reduce((acc, r) => acc + r.cafe, 0);
     const hotdesk = registros.reduce((acc, r) => acc + r.hotdesk, 0);
     const asesorias = registros.reduce((acc, r) => acc + r.asesorias, 0);
+    const total_utilidad_neta = total_venta - total_costos;
+    const revPSM = total_venta / 25 / registros.length; // Revenue Per Square Meter — fuente única
     return {
       total_venta,
       total_costos,
-      total_utilidad_neta: total_venta - total_costos,
+      total_utilidad_neta,
       cafe,
       hotdesk,
       asesorias,
+      revPSM,
     };
   }, [registros]);
 
@@ -93,7 +143,7 @@ export function CFODashboardConsolidado() {
   const utilidadAcumulada = metricas?.total_utilidad_neta || 0;
   const paybackDerecho = utilidadAcumulada > 0 ? (derechoLlaves / utilidadAcumulada * registros.length).toFixed(1) : '∞';
   const paybackCapex = utilidadAcumulada > 0 ? (capexTotal / utilidadAcumulada * registros.length).toFixed(1) : '∞';
-  const revPSM = metricas ? metricas.total_venta / 25 / registros.length : 0;
+  const revPSM = metricas?.revPSM ?? 0;
 
   // Estado de salud financiera
   const saludFinanciera = margenNeto >= 40 ? 'excelente' : margenNeto >= 30 ? 'buena' : margenNeto >= 20 ? 'regular' : 'crítica';
@@ -163,7 +213,7 @@ export function CFODashboardConsolidado() {
             <Button
               size="sm"
               variant={rolFiltro === 'cfo' ? 'default' : 'outline'}
-              onClick={() => setRolFiltro('cfo')}
+              onClick={() => handleRolChange('cfo')}
               className={rolFiltro === 'cfo' ? 'bg-blue-600 hover:bg-blue-700 h-8 text-xs' : 'h-8 text-xs'}
             >
               👔 CFO
@@ -171,7 +221,7 @@ export function CFODashboardConsolidado() {
             <Button
               size="sm"
               variant={rolFiltro === 'socio-gerente' ? 'default' : 'outline'}
-              onClick={() => setRolFiltro('socio-gerente')}
+              onClick={() => handleRolChange('socio-gerente')}
               className={rolFiltro === 'socio-gerente' ? 'bg-green-600 hover:bg-green-700 h-8 text-xs' : 'h-8 text-xs'}
             >
               🤝 Socio
@@ -179,7 +229,7 @@ export function CFODashboardConsolidado() {
             <Button
               size="sm"
               variant={rolFiltro === 'colaborador' ? 'default' : 'outline'}
-              onClick={() => setRolFiltro('colaborador')}
+              onClick={() => handleRolChange('colaborador')}
               className={rolFiltro === 'colaborador' ? 'bg-purple-600 hover:bg-purple-700 h-8 text-xs' : 'h-8 text-xs'}
             >
               👥 Colaborador
@@ -214,13 +264,15 @@ export function CFODashboardConsolidado() {
               <FileText className="mr-2 h-5 w-5" />
               Análisis
             </TabsTrigger>
-            <TabsTrigger
-              value="config"
-              className="text-sm py-3 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-amber-500 data-[state=active]:text-white hover:bg-orange-50 transition-all font-semibold"
-            >
-              <Zap className="mr-2 h-5 w-5" />
-              Automatización
-            </TabsTrigger>
+            {rolFiltro !== 'colaborador' && (
+              <TabsTrigger
+                value="config"
+                className="text-sm py-3 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-amber-500 data-[state=active]:text-white hover:bg-orange-50 transition-all font-semibold"
+              >
+                <Zap className="mr-2 h-5 w-5" />
+                Automatización
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* ============================================ */}
@@ -632,89 +684,61 @@ export function CFODashboardConsolidado() {
               </CardHeader>
             </Card>
 
-            {/* INFORME EJECUTIVO SOP */}
-            <Card className="border-red-200">
-              <CardHeader className="bg-red-50">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-red-600" />
-                  📄 Informe Ejecutivo SOP
-                </CardTitle>
-                <CardDescription>Análisis completo estilo Standard Operating Procedure</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <InformeEjecutivo />
-              </CardContent>
-            </Card>
-
-            {/* ANÁLISIS CFO - ESTRATÉGICO */}
-            <Card className="border-2 border-indigo-300 bg-gradient-to-r from-indigo-50 to-purple-50">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-indigo-600" />
-                  🎯 Análisis Estratégico CFO
-                </CardTitle>
-                <CardDescription>Análisis financiero avanzado: Márgenes, <GlosarioTooltip termino="RevPSM" />, <GlosarioTooltip termino="Mix de Negocio" />, Escenarios</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <AnalisisCFO />
-              </CardContent>
-            </Card>
-
-            {/* REPORTES EJECUTIVOS */}
-            <Card className="border-cyan-200">
-              <CardHeader className="bg-cyan-50">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-cyan-600" />
-                  📊 Reportes Ejecutivos
-                </CardTitle>
-                <CardDescription>Dashboards y métricas avanzadas</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <ReportesEjecutivos />
-              </CardContent>
-            </Card>
-
-            {/* INTEGRACIÓN B2C ECOMMERCE */}
-            <Card className="border-blue-200">
-              <CardHeader className="bg-blue-50">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Globe className="h-5 w-5 text-blue-600" />
-                  🌐 Integración B2C Ecommerce
-                </CardTitle>
-                <CardDescription>Análisis de plataforma online + propuesta de integración</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <IntegracionB2C />
-              </CardContent>
-            </Card>
-
-            {/* ANÁLISIS UX/UI SECCIÓN ANÁLISIS */}
-            <Card className="border-purple-200">
-              <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Eye className="h-5 w-5 text-purple-600" />
-                  👁️ Análisis Heurístico y Usabilidad - Sección Análisis
-                </CardTitle>
-                <CardDescription>Evaluación UX/UI completa de la sección "Análisis y Reportes"</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setMostrarMetasSecundarias(!mostrarMetasSecundarias)}
-                  className="mb-4"
-                >
-                  {mostrarMetasSecundarias ? <ChevronUp className="h-4 w-4 mr-2" /> : <ChevronDown className="h-4 w-4 mr-2" />}
-                  {mostrarMetasSecundarias ? 'Ocultar Análisis UX/UI' : 'Ver Análisis Completo'}
-                </Button>
-                
-                {mostrarMetasSecundarias && (
-                  <div className="border-t pt-4">
-                    <AnalisisUXAnalisis />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            {/* SECCIONES DE ANÁLISIS — ACORDEÓN */}
+            {[
+              {
+                id: 'informe',
+                defaultOpen: true,
+                border: 'border-red-200',
+                headerBg: 'bg-red-50',
+                icon: <FileText className="h-5 w-5 text-red-600" />,
+                titulo: '📄 Informe Ejecutivo SOP',
+                descripcion: 'Análisis completo estilo Standard Operating Procedure',
+                content: <InformeEjecutivo />,
+              },
+              {
+                id: 'analisis-cfo',
+                defaultOpen: false,
+                border: 'border-indigo-300',
+                headerBg: 'bg-gradient-to-r from-indigo-50 to-purple-50',
+                icon: <BarChart3 className="h-5 w-5 text-indigo-600" />,
+                titulo: '🎯 Análisis Estratégico CFO',
+                descripcion: 'Márgenes, RevPSM, Mix de Negocio, Escenarios',
+                content: <AnalisisCFO />,
+              },
+              {
+                id: 'reportes',
+                defaultOpen: false,
+                border: 'border-cyan-200',
+                headerBg: 'bg-cyan-50',
+                icon: <BarChart3 className="h-5 w-5 text-cyan-600" />,
+                titulo: '📊 Reportes Ejecutivos',
+                descripcion: 'Dashboards y métricas avanzadas',
+                content: <ReportesEjecutivos />,
+              },
+              {
+                id: 'b2c',
+                defaultOpen: false,
+                border: 'border-blue-200',
+                headerBg: 'bg-blue-50',
+                icon: <Globe className="h-5 w-5 text-blue-600" />,
+                titulo: '🌐 Integración B2C Ecommerce',
+                descripcion: 'Análisis de plataforma online + propuesta de integración',
+                content: <IntegracionB2C />,
+              },
+            ].map(({ id, defaultOpen, border, headerBg, icon, titulo, descripcion, content }) => (
+              <AnalisisSection
+                key={id}
+                defaultOpen={defaultOpen}
+                border={border}
+                headerBg={headerBg}
+                icon={icon}
+                titulo={titulo}
+                descripcion={descripcion}
+              >
+                {content}
+              </AnalisisSection>
+            ))}
             </>
             )}
           </TabsContent>
@@ -790,23 +814,6 @@ export function CFODashboardConsolidado() {
               </CardContent>
             </Card>
 
-            {/* FUNCIONES OCULTAS/REMOVIDAS */}
-            <Alert className="border-2 border-red-200 bg-red-50">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
-              <AlertTitle className="text-red-900 font-bold">🗑️ Funciones Removidas en Consolidación</AlertTitle>
-              <AlertDescription className="text-red-800 text-sm">
-                <p className="mb-2">Para reducir complejidad, estas funciones fueron <strong>eliminadas u ocultadas</strong>:</p>
-                <ul className="list-disc list-inside space-y-1 text-xs">
-                  <li><strong>Acciones Rápidas:</strong> Redundante (navegación disponible en tabs)</li>
-                  <li><strong>Auditoría Operativa:</strong> Movida a beta/desarrollo</li>
-                  <li><strong>Sincronización Figma:</strong> Solo para desarrolladores (oculta en producción)</li>
-                  <li><strong>Auditoría Heurística UX:</strong> Movida a documentos externos</li>
-                </ul>
-                <p className="mt-2 text-xs">
-                  <strong>Justificación:</strong> Usuarios finales (CFO, Socio-Gerente, Colaborador) no necesitan herramientas meta/desarrollo en interfaz principal.
-                </p>
-              </AlertDescription>
-            </Alert>
           </TabsContent>
         </Tabs>
 
