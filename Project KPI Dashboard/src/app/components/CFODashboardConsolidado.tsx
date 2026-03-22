@@ -59,6 +59,7 @@ export function CFODashboardConsolidado() {
   const [loadingAnalisis, setLoadingAnalisis] = useState(false);
   
   // Estado de secciones colapsables
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [mostrarDiario, setMostrarDiario] = useState(false);
   const [mostrarConfigAvanzada, setMostrarConfigAvanzada] = useState(false);
   const [mostrarMetasSecundarias, setMostrarMetasSecundarias] = useState(false);
@@ -119,6 +120,7 @@ export function CFODashboardConsolidado() {
 
   // Handler para cambio de tab con skeleton en análisis
   const handleTabChange = (value: string) => {
+    setActiveTab(value);
     if (value === 'analisis') {
       setLoadingAnalisis(true);
       setTimeout(() => setLoadingAnalisis(false), 400);
@@ -142,69 +144,51 @@ export function CFODashboardConsolidado() {
                   <p className="text-sm text-gray-600">Retail de Café • 25 m² • 3 Líneas de Negocio</p>
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row items-center gap-4">
-                {/* Selector de rol prominente en el header */}
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm font-semibold text-gray-700 whitespace-nowrap">Vista:</Label>
-                  <div className="flex gap-1">
-                    <Button
-                      size="sm"
-                      variant={rolFiltro === 'cfo' ? 'default' : 'outline'}
-                      onClick={() => setRolFiltro('cfo')}
-                      className={rolFiltro === 'cfo' ? 'bg-blue-600 hover:bg-blue-700' : ''}
-                    >
-                      👔 CFO
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={rolFiltro === 'socio-gerente' ? 'default' : 'outline'}
-                      onClick={() => setRolFiltro('socio-gerente')}
-                      className={rolFiltro === 'socio-gerente' ? 'bg-green-600 hover:bg-green-700' : ''}
-                    >
-                      🤝 Socio
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={rolFiltro === 'colaborador' ? 'default' : 'outline'}
-                      onClick={() => setRolFiltro('colaborador')}
-                      className={rolFiltro === 'colaborador' ? 'bg-purple-600 hover:bg-purple-700' : ''}
-                    >
-                      👥 Colaborador
-                    </Button>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <Badge className="bg-gradient-to-r from-green-600 to-emerald-600 text-white text-base px-4 py-2">
-                    ✨ Arquitectura Consolidada
-                  </Badge>
-                  <p className="text-xs text-gray-600">13 tabs → 4 tabs (-64% complejidad)</p>
-                </div>
-              </div>
+              <Badge className={
+                rolFiltro === 'cfo' ? 'bg-blue-600 text-white text-sm px-3 py-1.5' :
+                rolFiltro === 'socio-gerente' ? 'bg-green-600 text-white text-sm px-3 py-1.5' :
+                'bg-purple-600 text-white text-sm px-3 py-1.5'
+              }>
+                {rolFiltro === 'cfo' ? '👔 CFO' : rolFiltro === 'socio-gerente' ? '🤝 Socio-Gerente' : '👥 Colaborador'}
+              </Badge>
             </div>
           </CardContent>
         </Card>
 
-        {/* ALERTA DE MEJORA */}
-        {registros.length > 0 && (
-          <Alert className="border-2 border-green-300 bg-green-50 shadow-lg">
-            <TrendingUp className="h-5 w-5 text-green-600" />
-            <AlertTitle className="text-green-900 font-bold">🎯 Mejora Aplicada: Arquitectura de Información Optimizada</AlertTitle>
-            <AlertDescription className="text-green-800 text-sm">
-              <p className="mb-2">
-                <strong>Consolidamos 13 tabs en 4 tabs core</strong> eliminando redundancia, flujos desconectados y sobrecarga cognitiva.
-              </p>
-              <ul className="text-xs space-y-1 list-disc list-inside">
-                <li><strong>Dashboard:</strong> Vista única con todos los KPIs + Genio y Figura como widget</li>
-                <li><strong>Datos:</strong> Ingreso mensual/diario unificado + Historial centralizado</li>
-                <li><strong>Análisis:</strong> Informes + Reportes + Integración B2C consolidados</li>
-                <li><strong>Config:</strong> Webhooks + Alertas + Tutoriales agrupados</li>
-              </ul>
-            </AlertDescription>
-          </Alert>
-        )}
+
+        {/* BARRA STICKY DE ROL */}
+        <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-xl shadow-sm px-4 py-2 flex items-center justify-between">
+          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Vista activa</span>
+          <div className="flex gap-1.5">
+            <Button
+              size="sm"
+              variant={rolFiltro === 'cfo' ? 'default' : 'outline'}
+              onClick={() => setRolFiltro('cfo')}
+              className={rolFiltro === 'cfo' ? 'bg-blue-600 hover:bg-blue-700 h-8 text-xs' : 'h-8 text-xs'}
+            >
+              👔 CFO
+            </Button>
+            <Button
+              size="sm"
+              variant={rolFiltro === 'socio-gerente' ? 'default' : 'outline'}
+              onClick={() => setRolFiltro('socio-gerente')}
+              className={rolFiltro === 'socio-gerente' ? 'bg-green-600 hover:bg-green-700 h-8 text-xs' : 'h-8 text-xs'}
+            >
+              🤝 Socio
+            </Button>
+            <Button
+              size="sm"
+              variant={rolFiltro === 'colaborador' ? 'default' : 'outline'}
+              onClick={() => setRolFiltro('colaborador')}
+              className={rolFiltro === 'colaborador' ? 'bg-purple-600 hover:bg-purple-700 h-8 text-xs' : 'h-8 text-xs'}
+            >
+              👥 Colaborador
+            </Button>
+          </div>
+        </div>
 
         {/* TABS CONSOLIDADAS */}
-        <Tabs defaultValue="dashboard" className="space-y-6" onValueChange={handleTabChange}>
+        <Tabs value={activeTab} className="space-y-6" onValueChange={handleTabChange}>
           <TabsList className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-white p-2 h-auto border-2 border-gray-200 shadow-md">
             <TabsTrigger 
               value="dashboard" 
@@ -230,12 +214,12 @@ export function CFODashboardConsolidado() {
               <FileText className="mr-2 h-5 w-5" />
               Análisis
             </TabsTrigger>
-            <TabsTrigger 
-              value="config" 
-              className="text-sm py-3 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-gray-600 data-[state=active]:to-slate-600 data-[state=active]:text-white hover:bg-gray-50 transition-all font-semibold"
+            <TabsTrigger
+              value="config"
+              className="text-sm py-3 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-amber-500 data-[state=active]:text-white hover:bg-orange-50 transition-all font-semibold"
             >
-              <Settings className="mr-2 h-5 w-5" />
-              Config
+              <Zap className="mr-2 h-5 w-5" />
+              Automatización
             </TabsTrigger>
           </TabsList>
 
@@ -454,13 +438,42 @@ export function CFODashboardConsolidado() {
                 )}
               </>
             ) : (
-              <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>No hay datos</AlertTitle>
-                <AlertDescription>
-                  Ve a la tab <strong>Datos</strong> para ingresar información mensual.
-                </AlertDescription>
-              </Alert>
+              <Card className="border-2 border-dashed border-gray-300 bg-white">
+                <CardContent className="flex flex-col items-center justify-center py-16 gap-6 text-center">
+                  <div className="h-20 w-20 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center">
+                    <Database className="h-10 w-10 text-blue-500" />
+                  </div>
+                  <div className="space-y-2 max-w-sm">
+                    <h2 className="text-2xl font-bold text-gray-800">Aún no hay datos cargados</h2>
+                    <p className="text-gray-500 text-sm">
+                      Ingresa el primer mes de ventas para ver tus KPIs, payback y el estado Genio/Figura en tiempo real.
+                    </p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-center gap-3">
+                    <Button
+                      size="lg"
+                      className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8"
+                      onClick={() => handleTabChange('datos')}
+                    >
+                      <Database className="mr-2 h-5 w-5" />
+                      Cargar primer mes →
+                    </Button>
+                    <p className="text-xs text-gray-400">CSV, Google Sheets o ingreso manual</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 mt-2 w-full max-w-sm">
+                    {[
+                      { icon: '☕', label: 'Cafetería', color: 'bg-orange-50 border-orange-200' },
+                      { icon: '💻', label: 'Hotdesk', color: 'bg-blue-50 border-blue-200' },
+                      { icon: '📋', label: 'Asesorías', color: 'bg-purple-50 border-purple-200' },
+                    ].map(({ icon, label, color }) => (
+                      <div key={label} className={`rounded-lg border-2 ${color} p-3 flex flex-col items-center gap-1`}>
+                        <span className="text-2xl">{icon}</span>
+                        <span className="text-xs font-medium text-gray-600">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </TabsContent>
 
