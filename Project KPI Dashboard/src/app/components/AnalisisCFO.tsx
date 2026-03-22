@@ -29,10 +29,9 @@ import {
   XCircle
 } from 'lucide-react';
 import { useDashboard } from '../contexts/DashboardContext';
-
-const CAPEX_TOTAL = 37697000;
-const DERECHO_LLAVES = 18900000;
-const AREA_M2 = 25;
+import { useRole } from '../contexts/RoleContext';
+import { useBusinessConfig } from '../contexts/BusinessConfigContext';
+import { AccessDenied } from './ui/AccessDenied';
 
 // Márgenes de referencia por línea de negocio
 const MARGENES_REFERENCIA = {
@@ -43,6 +42,8 @@ const MARGENES_REFERENCIA = {
 };
 
 export function AnalisisCFO() {
+  const { can } = useRole();
+  const { config } = useBusinessConfig();
   const { registros, metricas } = useDashboard();
   const [tipoAnalisis, setTipoAnalisis] = useState<'margenes' | 'revpsm' | 'mix' | 'escenarios'>('margenes');
   const [loading, setLoading] = useState(true);
@@ -52,6 +53,14 @@ export function AnalisisCFO() {
     const timer = setTimeout(() => setLoading(false), 800);
     return () => clearTimeout(timer);
   }, []);
+
+  const CAPEX_TOTAL = config.capex_total;
+  const DERECHO_LLAVES = config.derecho_llaves;
+  const AREA_M2 = config.metros_cuadrados;
+
+  if (!can('view:financial_analysis')) {
+    return <AccessDenied message="Solo disponible para CFO / Admin" />;
+  }
 
   // US-011: Loading State
   if (loading) {
