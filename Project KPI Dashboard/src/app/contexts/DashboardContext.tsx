@@ -103,6 +103,53 @@ interface DashboardContextType {
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
 
+const STORAGE_KEY = 'historial_kpi_log_triple';
+const SCHEMA_VERSION = '2.0';
+
+interface StorageEnvelope {
+  version: string;
+  data: RegistroMensualTriple[];
+}
+
+function cargarDesdeStorage(): RegistroMensualTriple[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+
+    const parsed = JSON.parse(raw);
+
+    // Si ya tiene envelope con versión
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && parsed.version) {
+      if (parsed.version === SCHEMA_VERSION) {
+        return Array.isArray(parsed.data) ? parsed.data : [];
+      }
+      // Versión distinta: intentar migrar si los datos son compatibles
+      console.warn(`[DashboardContext] Schema version mismatch (${parsed.version} vs ${SCHEMA_VERSION}). Intentando migrar.`);
+      return Array.isArray(parsed.data) ? parsed.data : [];
+    }
+
+    // Datos legados (array directo sin version): compatibles, migrar
+    if (Array.isArray(parsed)) {
+      console.info('[DashboardContext] Migrando datos legados al schema v2.0');
+      return parsed as RegistroMensualTriple[];
+    }
+
+    return [];
+  } catch {
+    console.error('[DashboardContext] Error al leer localStorage, iniciando limpio.');
+    return [];
+  }
+}
+
+function guardarEnStorage(registros: RegistroMensualTriple[]): void {
+  try {
+    const envelope: StorageEnvelope = { version: SCHEMA_VERSION, data: registros };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(envelope));
+  } catch {
+    console.error('[DashboardContext] Error al guardar en localStorage.');
+  }
+}
+
 export function DashboardProvider({ children }: { children: ReactNode }) {
   const [registros, setRegistrosState] = useState<RegistroMensualTriple[]>([]);
   const [registroActual, setRegistroActual] = useState<RegistroMensualTriple | null>(null);
@@ -110,9 +157,9 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
   // Cargar datos desde localStorage o inicializar con simulación
   useEffect(() => {
-    const datosGuardados = localStorage.getItem('historial_kpi_log_triple');
-    if (datosGuardados) {
-      setRegistrosState(JSON.parse(datosGuardados));
+    const datos = cargarDesdeStorage();
+    if (datos.length > 0) {
+      setRegistrosState(datos);
     }
     // NO cargar simulación automáticamente - el usuario debe importar sus datos reales
   }, []);
@@ -120,7 +167,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   // Guardar en localStorage cuando cambien los registros
   const setRegistros = (nuevosRegistros: RegistroMensualTriple[]) => {
     setRegistrosState(nuevosRegistros);
-    localStorage.setItem('historial_kpi_log_triple', JSON.stringify(nuevosRegistros));
+    guardarEnStorage(nuevosRegistros);
   };
 
   // Filtrar registros según rango temporal

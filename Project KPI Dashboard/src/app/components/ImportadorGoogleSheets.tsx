@@ -14,6 +14,9 @@ const CAPEX_TOTAL = 37697000;
 const DERECHO_LLAVES = 18900000;
 const METROS_CUADRADOS = 25;
 
+// API key via environment variable — configura VITE_GOOGLE_SHEETS_API_KEY en .env
+const GOOGLE_SHEETS_API_KEY: string = import.meta.env.VITE_GOOGLE_SHEETS_API_KEY ?? '';
+
 // Estructura de columnas Google Sheets
 // A: date | B: venta_cafe | C: venta_hotdesk | D: venta_asesoria
 // E: cogs_cafe | F: cogs_hotdesk | G: cogs_asesoria
@@ -248,6 +251,19 @@ export function ImportadorGoogleSheets() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Alerta si no está configurada la API key */}
+        {!GOOGLE_SHEETS_API_KEY && (
+          <Alert className="border-amber-500 bg-amber-50">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="text-sm font-semibold text-amber-900">Configuración requerida</AlertTitle>
+            <AlertDescription className="text-xs text-amber-800">
+              Para habilitar sincronización directa con Google Sheets API, configura{' '}
+              <code className="bg-white px-1 rounded font-mono">VITE_GOOGLE_SHEETS_API_KEY</code> en tu archivo{' '}
+              <code className="bg-white px-1 rounded font-mono">.env</code>. El importador manual por copia/pegado sigue funcionando sin API key.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Link directo al Google Sheet */}
         <Alert className="border-cyan-500 bg-gradient-to-r from-cyan-50 to-blue-50">
           <FileSpreadsheet className="h-4 w-4 text-cyan-600" />
