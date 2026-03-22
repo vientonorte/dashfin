@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo, type ReactNode } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
@@ -61,10 +61,10 @@ function AnalisisSection({
   defaultOpen: boolean;
   border: string;
   headerBg: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
   titulo: string;
   descripcion: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
@@ -98,9 +98,10 @@ export function CFODashboardConsolidado() {
   const [rolFiltro, setRolFiltro] = useState<'cfo' | 'socio-gerente' | 'colaborador'>('cfo');
   const [loadingAnalisis, setLoadingAnalisis] = useState(false);
   
-  // Estado de secciones colapsables
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mostrarDiario, setMostrarDiario] = useState(false);
+  const [mostrarConfigAvanzada, setMostrarConfigAvanzada] = useState(false);
+  const [mostrarMetasSecundarias, setMostrarMetasSecundarias] = useState(false);
 
   const handleRolChange = (nuevoRol: 'cfo' | 'socio-gerente' | 'colaborador') => {
     setRolFiltro(nuevoRol);
@@ -108,8 +109,6 @@ export function CFODashboardConsolidado() {
       setActiveTab('dashboard');
     }
   };
-  const [mostrarConfigAvanzada, setMostrarConfigAvanzada] = useState(false);
-  const [mostrarMetasSecundarias, setMostrarMetasSecundarias] = useState(false);
 
   // CÁLCULOS
   const formatChileno = (valor: number) => {
@@ -125,7 +124,7 @@ export function CFODashboardConsolidado() {
     const hotdesk = registros.reduce((acc, r) => acc + r.hotdesk, 0);
     const asesorias = registros.reduce((acc, r) => acc + r.asesorias, 0);
     const total_utilidad_neta = total_venta - total_costos;
-    const revPSM = total_venta / 25 / registros.length; // Revenue Per Square Meter — fuente única
+    const revPSM = total_venta / 25 / registros.length;
     return {
       total_venta,
       total_costos,
