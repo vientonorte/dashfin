@@ -85,6 +85,14 @@ export function AnalisisCFO() {
     return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   };
 
+  // Mapa estático de colores para evitar purga de clases dinámicas por Tailwind
+  const revPSMColorMap: Record<string, { text: string; badge: string }> = {
+    red: { text: 'text-red-600', badge: 'bg-red-500' },
+    yellow: { text: 'text-yellow-600', badge: 'bg-yellow-500' },
+    green: { text: 'text-green-600', badge: 'bg-green-500' },
+    emerald: { text: 'text-emerald-600', badge: 'bg-emerald-500' },
+  };
+
   // ========================================
   // ANÁLISIS DE MÁRGENES POR LÍNEA
   // ========================================
@@ -463,7 +471,7 @@ export function AnalisisCFO() {
                   {/* Análisis por línea */}
                   <div className="space-y-4">
                     <h3 className="font-semibold text-lg">Detalle por Línea de Negocio</h3>
-                    {analisisMargenes.lineas.map((linea, idx) => {
+                    {analisisMargenes.lineas.map((linea) => {
                       const Icon = linea.icon;
                       const colorClasses = {
                         orange: { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-600', badge: 'bg-orange-500' },
@@ -472,7 +480,7 @@ export function AnalisisCFO() {
                       }[linea.color];
 
                       return (
-                        <Card key={idx} className={`border-2 ${colorClasses.border}`}>
+                        <Card key={linea.nombre} className={`border-2 ${colorClasses.border}`}>
                           <CardContent className="pt-6">
                             <div className="flex items-center justify-between mb-4">
                               <div className="flex items-center gap-3">
@@ -544,10 +552,10 @@ export function AnalisisCFO() {
                   {/* KPI principal */}
                   <div className="text-center p-6 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-lg border-2 border-cyan-200">
                     <p className="text-sm text-gray-600 mb-2">RevPSM Promedio Mensual</p>
-                    <div className={`text-5xl font-bold text-${analisisRevPSM.color}-600 mb-2`}>
+                    <div className={`text-5xl font-bold ${revPSMColorMap[analisisRevPSM.color]?.text ?? 'text-gray-600'} mb-2`}>
                       ${formatChileno(analisisRevPSM.promedioMensual)}
                     </div>
-                    <Badge className={`bg-${analisisRevPSM.color}-500 text-white text-lg px-4 py-1`}>
+                    <Badge className={`${revPSMColorMap[analisisRevPSM.color]?.badge ?? 'bg-gray-500'} text-white text-lg px-4 py-1`}>
                       {analisisRevPSM.clasificacion}
                     </Badge>
                     <p className="text-sm text-gray-600 mt-3">
@@ -563,10 +571,10 @@ export function AnalisisCFO() {
                       { nombre: 'Retail Medio', valor: analisisRevPSM.benchmarks.medio, color: 'yellow' },
                       { nombre: 'Retail Premium', valor: analisisRevPSM.benchmarks.alto, color: 'green' },
                       { nombre: 'Retail Top', valor: analisisRevPSM.benchmarks.excelente, color: 'emerald' }
-                    ].map((benchmark, idx) => {
+                    ].map((benchmark) => {
                       const superado = analisisRevPSM.promedioMensual >= benchmark.valor;
                       return (
-                        <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                        <div key={benchmark.nombre} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
                           <div className="flex items-center gap-3">
                             {superado ? (
                               <CheckCircle2 className="h-5 w-5 text-green-600" />
@@ -584,7 +592,7 @@ export function AnalisisCFO() {
                   {/* RevPSM por línea */}
                   <div className="space-y-3">
                     <h3 className="font-semibold text-lg">RevPSM por Línea de Negocio</h3>
-                    {analisisRevPSM.lineasRevPSM.map((linea, idx) => {
+                    {analisisRevPSM.lineasRevPSM.map((linea) => {
                       const colorClasses = {
                         orange: 'border-orange-300 bg-orange-50',
                         blue: 'border-blue-300 bg-blue-50',
@@ -592,7 +600,7 @@ export function AnalisisCFO() {
                       }[linea.color];
 
                       return (
-                        <Card key={idx} className={`border-2 ${colorClasses}`}>
+                        <Card key={linea.nombre} className={`border-2 ${colorClasses}`}>
                           <CardContent className="pt-4">
                             <div className="flex items-center justify-between">
                               <span className="font-semibold">{linea.nombre}</span>
@@ -790,9 +798,9 @@ export function AnalisisCFO() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {analisisEscenarios.recomendaciones.map((rec, idx) => (
+                    {analisisEscenarios.recomendaciones.map((rec) => (
                       <Alert 
-                        key={idx} 
+                        key={rec.titulo} 
                         className={`border-2 ${
                           rec.tipo === 'crítico' ? 'border-red-500 bg-red-100' :
                           rec.tipo === 'advertencia' ? 'border-orange-500 bg-orange-100' :
@@ -825,11 +833,11 @@ export function AnalisisCFO() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-4">
-                  {analisisEscenarios.escenarios.map((escenario, idx) => {
+                  {analisisEscenarios.escenarios.map((escenario) => {
                     const esMejor = escenario.nombre === analisisEscenarios.mejorEscenario.nombre;
                     return (
                       <Card 
-                        key={idx} 
+                        key={escenario.nombre} 
                         className={`border-2 ${esMejor ? 'border-green-400 bg-green-50' : 'border-gray-200'}`}
                       >
                         <CardContent className="pt-4">

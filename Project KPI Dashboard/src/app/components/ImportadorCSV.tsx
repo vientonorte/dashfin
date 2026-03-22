@@ -25,6 +25,7 @@ export function ImportadorCSV() {
   const [selectedFile, setSelectedFile] = useState<string>('');
   const [erroresValidacion, setErroresValidacion] = useState<string[]>([]);
   const [advertenciasValidacion, setAdvertenciasValidacion] = useState<string[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // US-004: Descargar Template CSV mejorado
   const descargarTemplateMejorado = () => {
@@ -427,23 +428,49 @@ export function ImportadorCSV() {
 
         <div className="space-y-1">
           <Label htmlFor="csvFile" className="text-sm font-semibold">Subir archivo CSV</Label>
-          <Input
-            id="csvFile"
-            type="file"
-            accept=".csv"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
+          <div
+            className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
+              isDragOver
+                ? 'border-blue-500 bg-blue-50'
+                : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
+            }`}
+            onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+            onDragLeave={() => setIsDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragOver(false);
+              const file = e.dataTransfer.files?.[0];
+              if (file && file.name.endsWith('.csv')) {
                 setSelectedFile(file.name);
                 procesarCSV(file);
+              } else if (file) {
+                setError('Solo se aceptan archivos .csv');
               }
             }}
-            className="h-10 cursor-pointer"
-            disabled={processing}
-          />
-          {selectedFile && !processing && (
-            <p className="text-xs text-gray-600 mt-1">📄 Archivo: <strong>{selectedFile}</strong></p>
-          )}
+            onClick={() => !processing && document.getElementById('csvFile')?.click()}
+          >
+            <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+            <p className="text-sm text-gray-600">
+              {isDragOver ? '¡Suelta el archivo aquí!' : 'Arrastra tu CSV aquí o haz clic para seleccionar'}
+            </p>
+            {selectedFile && !processing && (
+              <p className="text-xs text-green-600 mt-1 font-medium">📄 {selectedFile}</p>
+            )}
+            <Input
+              id="csvFile"
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setSelectedFile(file.name);
+                  procesarCSV(file);
+                }
+              }}
+              disabled={processing}
+            />
+          </div>
         </div>
 
         {processing && (

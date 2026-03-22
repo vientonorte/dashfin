@@ -393,8 +393,8 @@ export function InformeEjecutivo() {
         heightLeft -= pdfHeight;
       }
 
-      // Generar nombre de archivo
-      const nombreArchivo = `informe-ejecutivo-${fecha}.pdf`;
+      // Generar nombre de archivo con formato YYYY-MM
+      const nombreArchivo = `informe-ejecutivo-${new Date().toISOString().slice(0, 7)}.pdf`;
 
       // Descargar PDF
       pdf.save(nombreArchivo);
@@ -405,9 +405,8 @@ export function InformeEjecutivo() {
       });
     } catch (error) {
       console.error('Error al exportar PDF:', error);
-      toast.error('Error al generar PDF', { 
-        id: 'export-pdf',
-        description: 'Intenta nuevamente o contacta soporte'
+      toast.error('❌ Error al generar PDF. Intente de nuevo.', { 
+        id: 'export-pdf'
       });
     } finally {
       setExportandoPDF(false);
@@ -515,6 +514,48 @@ export function InformeEjecutivo() {
 
   return (
     <div className="space-y-6">
+      {/* Botón de exportar PDF — posicionado en la parte superior */}
+      <div className="flex justify-end gap-3">
+        <Button
+          onClick={generarPreviewPDF}
+          size="lg"
+          variant="outline"
+          className="border-2 border-green-600 text-green-600 hover:bg-green-50"
+          disabled={exportandoPDF}
+        >
+          {exportandoPDF ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Generando...
+            </>
+          ) : (
+            <>
+              <Eye className="mr-2 h-5 w-5" />
+              👁️ Preview PDF
+            </>
+          )}
+        </Button>
+
+        <Button
+          onClick={exportarAPDF}
+          size="lg"
+          className="bg-green-600 hover:bg-green-700 text-white shadow-lg"
+          disabled={exportandoPDF}
+        >
+          {exportandoPDF ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Generando PDF...
+            </>
+          ) : (
+            <>
+              <Download className="mr-2 h-5 w-5" />
+              📥 Exportar PDF
+            </>
+          )}
+        </Button>
+      </div>
+
       {/* Contenedor capturado para PDF */}
       <div id="informe-ejecutivo-content">
         {/* Header con Estado Global */}

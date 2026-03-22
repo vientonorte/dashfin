@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { Progress } from './ui/progress';
+import { Skeleton } from './ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { 
   BarChart3, 
@@ -42,6 +43,7 @@ import { InformeEjecutivo } from './InformeEjecutivo';
 import { ReportesEjecutivos } from './ReportesEjecutivos';
 import { WebhooksMake } from './WebhooksMake';
 import { AlertasAutomaticas } from './AlertasAutomaticas';
+import { GlosarioTooltip } from './GlosarioTooltip';
 
 interface VentaData {
   fecha: string;
@@ -54,6 +56,7 @@ export function CFODashboardConsolidado() {
   const { registros } = useDashboard();
   const [mesFiltro, setMesFiltro] = useState<string>('todos');
   const [rolFiltro, setRolFiltro] = useState<'cfo' | 'socio-gerente' | 'colaborador'>('cfo');
+  const [loadingAnalisis, setLoadingAnalisis] = useState(false);
   
   // Estado de secciones colapsables
   const [mostrarDiario, setMostrarDiario] = useState(false);
@@ -65,18 +68,23 @@ export function CFODashboardConsolidado() {
     return new Intl.NumberFormat('es-CL', { maximumFractionDigits: 0 }).format(valor);
   };
 
-  const metricas = registros.length > 0 ? {
-    total_venta: registros.reduce((acc, r) => acc + r.cafe + r.hotdesk + r.asesorias, 0),
-    total_costos: registros.reduce((acc, r) => acc + r.costo_cafe + r.costo_hotdesk + r.costo_asesorias + r.costo_laboral + r.costo_fijo, 0),
-    total_utilidad_neta: 0, // Se calcula abajo
-    cafe: registros.reduce((acc, r) => acc + r.cafe, 0),
-    hotdesk: registros.reduce((acc, r) => acc + r.hotdesk, 0),
-    asesorias: registros.reduce((acc, r) => acc + r.asesorias, 0),
-  } : null;
-
-  if (metricas) {
-    metricas.total_utilidad_neta = metricas.total_venta - metricas.total_costos;
-  }
+  // Bug #2 fix: wrap metrics in useMemo to avoid recalculation on every render
+  const metricas = useMemo(() => {
+    if (registros.length === 0) return null;
+    const total_venta = registros.reduce((acc, r) => acc + r.cafe + r.hotdesk + r.asesorias, 0);
+    const total_costos = registros.reduce((acc, r) => acc + r.costo_cafe + r.costo_hotdesk + r.costo_asesorias + r.costo_laboral + r.costo_fijo, 0);
+    const cafe = registros.reduce((acc, r) => acc + r.cafe, 0);
+    const hotdesk = registros.reduce((acc, r) => acc + r.hotdesk, 0);
+    const asesorias = registros.reduce((acc, r) => acc + r.asesorias, 0);
+    return {
+      total_venta,
+      total_costos,
+      total_utilidad_neta: total_venta - total_costos,
+      cafe,
+      hotdesk,
+      asesorias,
+    };
+  }, [registros]);
 
   const margenNeto = metricas ? (metricas.total_utilidad_neta / metricas.total_venta) * 100 : 0;
   const derechoLlaves = 18900000;
@@ -109,6 +117,14 @@ export function CFODashboardConsolidado() {
 
   const COLORS = ['#f97316', '#3b82f6', '#a855f7'];
 
+  // Handler para cambio de tab con skeleton en análisis
+  const handleTabChange = (value: string) => {
+    if (value === 'analisis') {
+      setLoadingAnalisis(true);
+      setTimeout(() => setLoadingAnalisis(false), 400);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50">
       <div className="max-w-[1600px] mx-auto p-4 sm:p-6 space-y-6">
@@ -126,11 +142,43 @@ export function CFODashboardConsolidado() {
                   <p className="text-sm text-gray-600">Retail de Café • 25 m² • 3 Líneas de Negocio</p>
                 </div>
               </div>
-              <div className="flex flex-col items-end gap-2">
-                <Badge className="bg-gradient-to-r from-green-600 to-emerald-600 text-white text-base px-4 py-2">
-                  ✨ Arquitectura Consolidada
-                </Badge>
-                <p className="text-xs text-gray-600">13 tabs → 4 tabs (-64% complejidad)</p>
+              <div className="flex flex-col sm:flex-row items-center gap-4">
+                {/* Selector de rol prominente en el header */}
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm font-semibold text-gray-700 whitespace-nowrap">Vista:</Label>
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant={rolFiltro === 'cfo' ? 'default' : 'outline'}
+                      onClick={() => setRolFiltro('cfo')}
+                      className={rolFiltro === 'cfo' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                    >
+                      👔 CFO
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={rolFiltro === 'socio-gerente' ? 'default' : 'outline'}
+                      onClick={() => setRolFiltro('socio-gerente')}
+                      className={rolFiltro === 'socio-gerente' ? 'bg-green-600 hover:bg-green-700' : ''}
+                    >
+                      🤝 Socio
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={rolFiltro === 'colaborador' ? 'default' : 'outline'}
+                      onClick={() => setRolFiltro('colaborador')}
+                      className={rolFiltro === 'colaborador' ? 'bg-purple-600 hover:bg-purple-700' : ''}
+                    >
+                      👥 Colaborador
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  <Badge className="bg-gradient-to-r from-green-600 to-emerald-600 text-white text-base px-4 py-2">
+                    ✨ Arquitectura Consolidada
+                  </Badge>
+                  <p className="text-xs text-gray-600">13 tabs → 4 tabs (-64% complejidad)</p>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -156,7 +204,7 @@ export function CFODashboardConsolidado() {
         )}
 
         {/* TABS CONSOLIDADAS */}
-        <Tabs defaultValue="dashboard" className="space-y-6">
+        <Tabs defaultValue="dashboard" className="space-y-6" onValueChange={handleTabChange}>
           <TabsList className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-white p-2 h-auto border-2 border-gray-200 shadow-md">
             <TabsTrigger 
               value="dashboard" 
@@ -195,38 +243,6 @@ export function CFODashboardConsolidado() {
           {/* TAB 1: DASHBOARD EJECUTIVO                   */}
           {/* ============================================ */}
           <TabsContent value="dashboard" className="space-y-6">
-            
-            {/* FILTRO POR ROL */}
-            <Card className="border-indigo-200">
-              <CardContent className="pt-4">
-                <div className="flex items-center gap-4">
-                  <Label className="text-sm font-semibold">Vista por Rol:</Label>
-                  <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      variant={rolFiltro === 'cfo' ? 'default' : 'outline'}
-                      onClick={() => setRolFiltro('cfo')}
-                    >
-                      👔 CFO
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant={rolFiltro === 'socio-gerente' ? 'default' : 'outline'}
-                      onClick={() => setRolFiltro('socio-gerente')}
-                    >
-                      🤝 Socio-Gerente
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant={rolFiltro === 'colaborador' ? 'default' : 'outline'}
-                      onClick={() => setRolFiltro('colaborador')}
-                    >
-                      👥 Colaborador
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
             {/* KPIs PRINCIPALES */}
             {registros.length > 0 && metricas ? (
@@ -275,7 +291,7 @@ export function CFODashboardConsolidado() {
                   {/* RevPSM */}
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">RevPSM</CardTitle>
+                      <CardTitle className="text-sm font-medium"><GlosarioTooltip termino="RevPSM" /></CardTitle>
                       <BarChart3 className="h-5 w-5 text-purple-600" />
                     </CardHeader>
                     <CardContent>
@@ -289,7 +305,7 @@ export function CFODashboardConsolidado() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Card className="border-2 border-orange-200">
                     <CardHeader>
-                      <CardTitle className="text-lg">📊 Payback Derecho de Llaves</CardTitle>
+                      <CardTitle className="text-lg">📊 <GlosarioTooltip termino="Payback" /> Derecho de Llaves</CardTitle>
                       <CardDescription>Recuperación de inversión de $18.900.000</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
@@ -583,6 +599,14 @@ export function CFODashboardConsolidado() {
           {/* TAB 3: ANÁLISIS Y REPORTES                   */}
           {/* ============================================ */}
           <TabsContent value="analisis" className="space-y-6">
+            {loadingAnalisis ? (
+              <div className="space-y-4 p-2">
+                <Skeleton className="h-24 w-full rounded-xl" />
+                <Skeleton className="h-48 w-full rounded-xl" />
+                <Skeleton className="h-64 w-full rounded-xl" />
+              </div>
+            ) : (
+            <>
             <Card className="border-2 border-purple-300">
               <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
                 <CardTitle className="text-xl flex items-center gap-2">
@@ -616,7 +640,7 @@ export function CFODashboardConsolidado() {
                   <BarChart3 className="h-5 w-5 text-indigo-600" />
                   🎯 Análisis Estratégico CFO
                 </CardTitle>
-                <CardDescription>Análisis financiero avanzado: Márgenes, RevPSM, Mix Óptimo, Escenarios</CardDescription>
+                <CardDescription>Análisis financiero avanzado: Márgenes, <GlosarioTooltip termino="RevPSM" />, <GlosarioTooltip termino="Mix de Negocio" />, Escenarios</CardDescription>
               </CardHeader>
               <CardContent className="pt-4">
                 <AnalisisCFO />
@@ -678,6 +702,8 @@ export function CFODashboardConsolidado() {
                 )}
               </CardContent>
             </Card>
+            </>
+            )}
           </TabsContent>
 
           {/* ============================================ */}
