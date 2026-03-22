@@ -16,12 +16,14 @@ import {
   Zap
 } from 'lucide-react';
 import { useDashboard } from '../contexts/DashboardContext';
+import { useRole, RoleName } from '../contexts/RoleContext';
 import { toast } from 'sonner';
 
 interface AlertaConfig {
   id: string;
   nombre: string;
   descripcion: string;
+  roles: RoleName[];           // Quién recibe esta alerta
   condicion: (registros: any[], metricas: any) => boolean;
   mensaje: string;
   icono: any;
@@ -34,6 +36,7 @@ const CONFIGURACIONES_ALERTAS: AlertaConfig[] = [
     id: 'margen_neto_bajo',
     nombre: 'Margen Neto Crítico',
     descripcion: 'Alerta cuando el margen neto cae bajo 30%',
+    roles: ['admin'] as RoleName[],
     condicion: (registros) => {
       const ultimo = registros[0];
       return ultimo ? ultimo.margen_neto_percent < 30 : false;
@@ -47,6 +50,7 @@ const CONFIGURACIONES_ALERTAS: AlertaConfig[] = [
     id: 'venta_baja',
     nombre: 'Venta Mensual Baja',
     descripcion: 'Alerta cuando la venta del mes es 20% menor al promedio',
+    roles: ['admin', 'gerente'] as RoleName[],
     condicion: (registros, metricas) => {
       if (registros.length < 2) return false;
       const ultimo = registros[0];
@@ -62,6 +66,7 @@ const CONFIGURACIONES_ALERTAS: AlertaConfig[] = [
     id: 'roi_negativo',
     nombre: 'ROI Negativo',
     descripcion: 'Alerta cuando el ROI del mes es negativo',
+    roles: ['admin'] as RoleName[],
     condicion: (registros) => {
       const ultimo = registros[0];
       return ultimo ? ultimo.roi < 0 : false;
@@ -75,6 +80,7 @@ const CONFIGURACIONES_ALERTAS: AlertaConfig[] = [
     id: 'figura_consecutivo',
     nombre: 'Figura Consecutivo',
     descripcion: 'Alerta cuando se obtiene "Figura" 2 meses seguidos',
+    roles: ['admin', 'gerente'] as RoleName[],
     condicion: (registros) => {
       if (registros.length < 2) return false;
       return registros[0].status === 'Figura' && registros[1].status === 'Figura';
@@ -88,6 +94,7 @@ const CONFIGURACIONES_ALERTAS: AlertaConfig[] = [
     id: 'payback_estancado',
     nombre: 'Payback Estancado',
     descripcion: 'Alerta cuando el payback no mejora en 3 meses',
+    roles: ['admin'] as RoleName[],
     condicion: (registros, metricas) => {
       if (registros.length < 3) return false;
       const ultimos3 = registros.slice(0, 3);
@@ -104,7 +111,11 @@ const CONFIGURACIONES_ALERTAS: AlertaConfig[] = [
 
 export function AlertasAutomaticas() {
   const { registros, metricas } = useDashboard();
-  
+  const { role } = useRole();
+
+  // Filtrar alertas por rol
+  const alertasParaEsteRol = CONFIGURACIONES_ALERTAS.filter(a => a.roles.includes(role));
+
   const [alertasActivas, setAlertasActivas] = useState<Record<string, boolean>>(() => {
     const saved = localStorage.getItem('alertas_configuracion');
     if (saved) {
@@ -128,7 +139,7 @@ export function AlertasAutomaticas() {
 
     const alertasActivadas: AlertaConfig[] = [];
 
-    CONFIGURACIONES_ALERTAS.forEach(config => {
+    alertasParaEsteRol.forEach(config => {
       if (!alertasActivas[config.id]) return;
 
       if (config.condicion(registros, metricas)) {
@@ -306,7 +317,7 @@ export function AlertasAutomaticas() {
           </h3>
 
           <div className="space-y-2">
-            {CONFIGURACIONES_ALERTAS.map(config => {
+            {alertasParaEsteRol.map(config => {
               const Icono = config.icono;
               return (
                 <div
