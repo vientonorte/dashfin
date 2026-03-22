@@ -1,55 +1,86 @@
-import { useState } from 'react';
-import { CFODashboard } from './components/CFODashboard';
 import { CFODashboardConsolidado } from './components/CFODashboardConsolidado';
 import { DashboardProvider } from './contexts/DashboardContext';
+import { RoleProvider, useRole, ROLE_PERMISSIONS } from './contexts/RoleContext';
+import type { RoleName } from './contexts/RoleContext';
+import { BusinessConfigProvider } from './contexts/BusinessConfigContext';
 import { Toaster } from 'sonner';
-import { Button } from './components/ui/button';
-import { Layers, LayoutGrid } from 'lucide-react';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { DashboardGerente } from './components/DashboardGerente';
+import { DashboardBarista } from './components/DashboardBarista';
+import { Button } from './components/ui/button';
+import { Users } from 'lucide-react';
 
-const isDebug = new URLSearchParams(window.location.search).has('debug');
+// ============================================================================
+// ROLE SELECTOR (floating, always visible)
+// ============================================================================
 
-export default function App() {
-  const [modoConsolidado, setModoConsolidado] = useState(true);
+function RoleSelector() {
+  const { role, setRole } = useRole();
+  const roles = Object.values(ROLE_PERMISSIONS);
 
   return (
-    <DashboardProvider>
-      <Toaster 
-        position="top-right" 
-        richColors 
-        expand={false}
-        duration={3000}
-      />
-      
-      {/* TOGGLE DE ARQUITECTURA — solo visible en modo debug (?debug=true) */}
-      {isDebug && (
-        <div className="fixed top-4 right-4 z-50 flex gap-2">
-          <Button
-            variant={modoConsolidado ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setModoConsolidado(true)}
-            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
-          >
-            <Layers className="mr-2 h-4 w-4" />
-            Consolidado (4 tabs)
-          </Button>
-          <Button
-            variant={!modoConsolidado ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setModoConsolidado(false)}
-            className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg"
-          >
-            <LayoutGrid className="mr-2 h-4 w-4" />
-            Original (13 tabs)
-          </Button>
-        </div>
-      )}
+    <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border px-3 py-2">
+      <Users className="h-4 w-4 text-muted-foreground" />
+      <select
+        value={role}
+        onChange={(e) => setRole(e.target.value as RoleName)}
+        className="text-xs font-medium bg-transparent border-none outline-none cursor-pointer pr-2"
+        aria-label="Seleccionar rol"
+      >
+        {roles.map((r) => (
+          <option key={r.role} value={r.role}>
+            {r.displayName}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
 
-      <main id="main-content" role="main" aria-label="Dashboard CFO Principal">
-        <ErrorBoundary>
-          {modoConsolidado ? <CFODashboardConsolidado /> : <CFODashboard />}
-        </ErrorBoundary>
-      </main>
-    </DashboardProvider>
+// ============================================================================
+// DASHBOARD VIEW BY ROLE
+// ============================================================================
+
+function DashboardByRole() {
+  const { role } = useRole();
+
+  switch (role) {
+    case 'admin':
+      return <CFODashboardConsolidado />;
+    case 'gerente':
+      return <DashboardGerente />;
+    case 'barista1':
+      return <DashboardBarista linea="cafe" />;
+    case 'barista2':
+      return <DashboardBarista linea="hotdesk" />;
+    default:
+      return <CFODashboardConsolidado />;
+  }
+}
+
+// ============================================================================
+// APP ROOT
+// ============================================================================
+
+export default function App() {
+  return (
+    <RoleProvider>
+      <BusinessConfigProvider>
+        <DashboardProvider>
+          <Toaster
+            position="top-right"
+            richColors
+            expand={false}
+            duration={3000}
+          />
+          <RoleSelector />
+          <main id="main-content" role="main" aria-label="Dashboard Principal">
+            <ErrorBoundary>
+              <DashboardByRole />
+            </ErrorBoundary>
+          </main>
+        </DashboardProvider>
+      </BusinessConfigProvider>
+    </RoleProvider>
   );
 }

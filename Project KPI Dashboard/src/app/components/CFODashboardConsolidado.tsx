@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useDashboard } from '../contexts/DashboardContext';
+import { useBusinessConfig } from '../contexts/BusinessConfigContext';
 import { TutorialMakeGoogleSheets } from './TutorialMakeGoogleSheets';
 import { GuiaWebhookMake } from './GuiaWebhookMake';
 import { IntegracionB2C } from './IntegracionB2C';
@@ -44,6 +45,7 @@ import { ReportesEjecutivos } from './ReportesEjecutivos';
 import { WebhooksMake } from './WebhooksMake';
 import { AlertasAutomaticas } from './AlertasAutomaticas';
 import { GlosarioTooltip } from './GlosarioTooltip';
+import { PanelConfig } from './PanelConfig';
 
 interface VentaData {
   fecha: string;
@@ -54,6 +56,7 @@ interface VentaData {
 
 export function CFODashboardConsolidado() {
   const { registros } = useDashboard();
+  const { config } = useBusinessConfig();
   const [mesFiltro, setMesFiltro] = useState<string>('todos');
   const [rolFiltro, setRolFiltro] = useState<'cfo' | 'socio-gerente' | 'colaborador'>('cfo');
   const [loadingAnalisis, setLoadingAnalisis] = useState(false);
@@ -87,12 +90,12 @@ export function CFODashboardConsolidado() {
   }, [registros]);
 
   const margenNeto = metricas ? (metricas.total_utilidad_neta / metricas.total_venta) * 100 : 0;
-  const derechoLlaves = 18900000;
-  const capexTotal = 37697000;
+  const derechoLlaves = config.derecho_llaves;
+  const capexTotal = config.capex_total;
   const utilidadAcumulada = metricas?.total_utilidad_neta || 0;
   const paybackDerecho = utilidadAcumulada > 0 ? (derechoLlaves / utilidadAcumulada * registros.length).toFixed(1) : '∞';
   const paybackCapex = utilidadAcumulada > 0 ? (capexTotal / utilidadAcumulada * registros.length).toFixed(1) : '∞';
-  const revPSM = metricas ? metricas.total_venta / 25 / registros.length : 0;
+  const revPSM = metricas ? metricas.total_venta / config.metros_cuadrados / registros.length : 0;
 
   // Estado de salud financiera
   const saludFinanciera = margenNeto >= 40 ? 'excelente' : margenNeto >= 30 ? 'buena' : margenNeto >= 20 ? 'regular' : 'crítica';
@@ -306,7 +309,7 @@ export function CFODashboardConsolidado() {
                   <Card className="border-2 border-orange-200">
                     <CardHeader>
                       <CardTitle className="text-lg">📊 <GlosarioTooltip termino="Payback" /> Derecho de Llaves</CardTitle>
-                      <CardDescription>Recuperación de inversión de $18.900.000</CardDescription>
+                      <CardDescription>Recuperación de inversión de ${formatChileno(derechoLlaves)}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="flex items-center justify-between">
@@ -328,7 +331,7 @@ export function CFODashboardConsolidado() {
                   <Card className="border-2 border-blue-200">
                     <CardHeader>
                       <CardTitle className="text-lg">💰 Payback CAPEX Total</CardTitle>
-                      <CardDescription>Recuperación de inversión total de $37.697.000</CardDescription>
+                      <CardDescription>Recuperación de inversión total de ${formatChileno(capexTotal)}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="flex items-center justify-between">
@@ -710,6 +713,9 @@ export function CFODashboardConsolidado() {
           {/* TAB 4: CONFIGURACIÓN                         */}
           {/* ============================================ */}
           <TabsContent value="config" className="space-y-6">
+            {/* PANEL DE CONFIGURACIÓN DE NEGOCIO */}
+            <PanelConfig />
+
             <Card className="border-2 border-gray-300">
               <CardHeader className="bg-gradient-to-r from-gray-50 to-slate-50">
                 <CardTitle className="text-xl flex items-center gap-2">

@@ -9,6 +9,8 @@ import { Textarea } from './ui/textarea';
 import { Sparkles, TrendingDown, Download, Calendar, Copy, CheckCircle2, DollarSign, FileSpreadsheet, Database, Clock } from 'lucide-react';
 import { Separator } from './ui/separator';
 import { useDashboard } from '../contexts/DashboardContext';
+import { useRole } from '../contexts/RoleContext';
+import { useBusinessConfig } from '../contexts/BusinessConfigContext';
 import { toast } from 'sonner';
 
 interface RowData {
@@ -23,21 +25,6 @@ interface AnalisisGenioFigura {
   payback_days: string;
   status: string;
 }
-
-// CAPEX completo del local Irarrázaval 2100
-const CAPEX = {
-  derecho_llaves: 18900000,
-  reserva_sueldos_3m: 10335000,
-  total_invertido: 37697000
-};
-
-const LOCAL_INFO = {
-  nombre: 'Irarrázaval 2100',
-  metros_cuadrados: 25
-};
-
-// Umbral para clasificación Genio/Figura basado en UTILIDAD
-const UMBRAL_GENIO_UTILIDAD_DEFAULT = 150000;
 
 // Función para formatear con puntos de miles chilenos
 const formatChileno = (num: number): string => {
@@ -69,6 +56,23 @@ const normalizarValor = (texto: string): number => {
 };
 
 export function GenioyFigura() {
+  const { can } = useRole();
+  const { config } = useBusinessConfig();
+
+  // Derived constants from config
+  const CAPEX = {
+    derecho_llaves: config.derecho_llaves,
+    reserva_sueldos_3m: 10_335_000,
+    total_invertido: config.capex_total,
+  };
+  const LOCAL_INFO = {
+    nombre: config.nombre_local,
+    metros_cuadrados: config.metros_cuadrados,
+  };
+  const UMBRAL_GENIO_UTILIDAD_DEFAULT = config.umbral_genio;
+
+  if (!can('view:payback_analysis')) return null;
+
   const [rowData, setRowData] = useState<RowData>({
     fecha: '',
     venta: 0,

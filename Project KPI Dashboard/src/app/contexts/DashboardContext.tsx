@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useBusinessConfig } from './BusinessConfigContext';
 
 // ============================================================================
 // TIPOS - Triple Línea de Negocio (Café + Hotdesk + Asesorías)
@@ -151,6 +152,7 @@ function guardarEnStorage(registros: RegistroMensualTriple[]): void {
 }
 
 export function DashboardProvider({ children }: { children: ReactNode }) {
+  const { config } = useBusinessConfig();
   const [registros, setRegistrosState] = useState<RegistroMensualTriple[]>([]);
   const [registroActual, setRegistroActual] = useState<RegistroMensualTriple | null>(null);
   const [rangoTemporal, setRangoTemporal] = useState<'1M' | '3M' | '6M' | '1A' | 'H'>('H');
@@ -196,7 +198,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   // Calcular métricas globales
   const metricas = (() => {
     const recuperado = registrosFiltrados.reduce((sum, r) => sum + r.utilidad_neta_clp, 0);
-    const porcentajeRecuperado = (recuperado / 37697000) * 100;
+    const porcentajeRecuperado = (recuperado / config.capex_total) * 100;
     const mediaROI = registrosFiltrados.length > 0
       ? registrosFiltrados.reduce((sum, r) => sum + r.roi, 0) / registrosFiltrados.length * 100
       : 0;
@@ -216,7 +218,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     const figura = registrosFiltrados.filter(r => r.status === 'Figura').length;
 
     const paybackMeses = mediaROI > 0
-      ? Math.ceil(((37697000 - recuperado) / 37697000) / (mediaROI / 100))
+      ? Math.ceil(((config.capex_total - recuperado) / config.capex_total) / (mediaROI / 100))
       : 999;
 
     // Nuevas métricas por línea
