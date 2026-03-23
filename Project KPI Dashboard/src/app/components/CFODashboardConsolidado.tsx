@@ -849,23 +849,6 @@ export function CFODashboardConsolidado() {
               </CardContent>
             </Card>
 
-            {/* FUNCIONES OCULTAS/REMOVIDAS */}
-            <Alert className="border-2 border-red-200 bg-red-50">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
-              <AlertTitle className="text-red-900 font-bold">🗑️ Funciones Removidas en Consolidación</AlertTitle>
-              <AlertDescription className="text-red-800 text-sm">
-                <p className="mb-2">Para reducir complejidad, estas funciones fueron <strong>eliminadas u ocultadas</strong>:</p>
-                <ul className="list-disc list-inside space-y-1 text-xs">
-                  <li><strong>Acciones Rápidas:</strong> Redundante (navegación disponible en tabs)</li>
-                  <li><strong>Auditoría Operativa:</strong> Movida a beta/desarrollo</li>
-                  <li><strong>Sincronización Figma:</strong> Solo para desarrolladores (oculta en producción)</li>
-                  <li><strong>Auditoría Heurística UX:</strong> Movida a documentos externos</li>
-                </ul>
-                <p className="mt-2 text-xs">
-                  <strong>Justificación:</strong> Usuarios finales (CFO, Socio-Gerente, Colaborador) no necesitan herramientas meta/desarrollo en interfaz principal.
-                </p>
-              </AlertDescription>
-            </Alert>
           </TabsContent>
         </Tabs>
 
