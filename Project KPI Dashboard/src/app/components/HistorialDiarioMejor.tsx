@@ -4,6 +4,7 @@ import { Upload, TrendingUp, FileSpreadsheet } from 'lucide-react';
 import { useDashboard } from '../contexts/DashboardContext';
 import { IngresoDataUnificado } from './IngresoDataUnificado';
 import { ImportadorGoogleSheets } from './ImportadorGoogleSheets';
+import { OnboardingDataIngestion } from './OnboardingDataIngestion';
 import { TablaHistorial } from './TablaHistorial';
 
 export function HistorialDiarioMejor() {
@@ -36,53 +37,48 @@ export function HistorialDiarioMejor() {
 
       {/* Estado Vacío - Dashboard sin datos */}
       {registros.length === 0 && (
-        <Alert className="border-2 border-blue-600 bg-blue-50">
-          <Upload className="h-5 w-5 text-blue-600" />
-          <AlertTitle className="text-base font-bold">👋 Bienvenido a tu CFO Dashboard - Local "Da Pleisë"</AlertTitle>
-          <AlertDescription className="space-y-3 text-sm">
-            <p className="font-semibold">Para empezar, importa tus datos de venta reales usando uno de los métodos abajo 📊</p>
-            <div className="bg-white p-3 rounded border border-blue-300 mt-3">
-              <p className="text-xs font-semibold mb-2">📊 El sistema calculará automáticamente:</p>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>✅ Márgenes por línea (Café 68% / Hotdesk 92.5% / Asesorías 100%)</div>
-                <div>✅ ROI y RevPSM por m²</div>
-                <div>✅ Status Genio (&gt;$150K) / Figura (≤$150K)</div>
-                <div>✅ Línea dominante (mayor margen)</div>
-                <div>✅ Alertas de canibalización</div>
-                <div>✅ Payback estimado (Derecho Llaves $18.9M)</div>
-              </div>
-            </div>
+        <Alert className="border-2 border-primary/50 bg-primary/10">
+          <Upload className="h-5 w-5 text-primary" />
+          <AlertTitle className="text-base font-bold">Bienvenido a tu Dashboard Financiero</AlertTitle>
+          <AlertDescription className="text-sm">
+            <p>Importa tus datos de venta para ver métricas, márgenes y ROI al instante.</p>
+            <p className="text-xs text-muted-foreground mt-2">Solo necesitas un CSV o 3 números para empezar.</p>
           </AlertDescription>
         </Alert>
       )}
 
-      {/* ⭐ CARGA DE DATOS UNIFICADA */}
-      <div className="bg-white border-2 border-blue-300 rounded-lg overflow-hidden">
-        <div className="bg-blue-50 px-4 py-3 border-b border-blue-200">
-          <h2 className="text-base font-bold text-gray-900">Carga de Datos</h2>
-          <p className="text-xs text-gray-600 mt-0.5">Elige tu método: Google Sheets, CSV o ingreso manual</p>
+      {/* ⭐ ONBOARDING: Zero-friction data ingestion */}
+      <OnboardingDataIngestion />
+
+      {/* Carga avanzada: Google Sheets / CSV Legacy */}
+      <details className="group">
+        <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors list-none flex items-center gap-2 px-4 py-2">
+          <FileSpreadsheet className="h-3.5 w-3.5" />
+          Más opciones: Google Sheets o importador CSV avanzado
+        </summary>
+        <div className="mt-2 bg-white border-2 border-muted rounded-lg overflow-hidden">
+          <div className="p-4">
+            <Tabs defaultValue="sheets" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="sheets" className="text-sm">
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Google Sheets
+                </TabsTrigger>
+                <TabsTrigger value="csv-manual" className="text-sm">
+                  <Upload className="h-4 w-4 mr-2" />
+                  CSV / Manual
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="sheets">
+                <ImportadorGoogleSheets />
+              </TabsContent>
+              <TabsContent value="csv-manual">
+                <IngresoDataUnificado />
+              </TabsContent>
+            </Tabs>
+          </div>
         </div>
-        <div className="p-4">
-          <Tabs defaultValue="sheets" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="sheets" className="text-sm">
-                <FileSpreadsheet className="h-4 w-4 mr-2" />
-                Google Sheets
-              </TabsTrigger>
-              <TabsTrigger value="csv-manual" className="text-sm">
-                <Upload className="h-4 w-4 mr-2" />
-                CSV / Manual
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="sheets">
-              <ImportadorGoogleSheets />
-            </TabsContent>
-            <TabsContent value="csv-manual">
-              <IngresoDataUnificado />
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
+      </details>
 
       {/* Alert - Línea Dominante */}
       {registros.length > 0 && dominante && (
