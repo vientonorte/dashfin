@@ -1,5 +1,6 @@
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import { Upload, TrendingUp } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Upload, TrendingUp, FileSpreadsheet } from 'lucide-react';
 import { useDashboard } from '../contexts/DashboardContext';
 import { IngresoDataUnificado } from './IngresoDataUnificado';
 import { ImportadorGoogleSheets } from './ImportadorGoogleSheets';
@@ -7,10 +8,6 @@ import { TablaHistorial } from './TablaHistorial';
 
 export function HistorialDiarioMejor() {
   const { registros, metricas } = useDashboard();
-
-  const formatChileno = (num: number): string => {
-    return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  };
 
   const lineaDominanteInfo = {
     cafe: { nombre: 'Cafetería', emoji: '☕', color: 'orange', recomendacion: 'La cafetería genera el mayor margen. Optimizar rotación de mesas y ticket promedio.' },
@@ -43,13 +40,7 @@ export function HistorialDiarioMejor() {
           <Upload className="h-5 w-5 text-blue-600" />
           <AlertTitle className="text-base font-bold">👋 Bienvenido a tu CFO Dashboard - Local "Da Pleisë"</AlertTitle>
           <AlertDescription className="space-y-3 text-sm">
-            <p className="font-semibold">Para empezar, importa tus datos de venta reales usando el importador CSV 📊</p>
-            <ol className="list-decimal list-inside space-y-1 ml-2">
-              <li><strong>Descarga la plantilla CSV</strong> desde el botón verde del importador ⬇️</li>
-              <li><strong>Llena con tus datos reales</strong> de 30 días de venta</li>
-              <li><strong>Sube el archivo</strong> y el sistema agregará automáticamente el mes</li>
-              <li><strong>Expande cada mes</strong> en el historial con [+] para ver desglose día por día</li>
-            </ol>
+            <p className="font-semibold">Para empezar, importa tus datos de venta reales usando uno de los métodos abajo 📊</p>
             <div className="bg-white p-3 rounded border border-blue-300 mt-3">
               <p className="text-xs font-semibold mb-2">📊 El sistema calculará automáticamente:</p>
               <div className="grid grid-cols-2 gap-2 text-xs">
@@ -61,25 +52,36 @@ export function HistorialDiarioMejor() {
                 <div>✅ Payback estimado (Derecho Llaves $18.9M)</div>
               </div>
             </div>
-            <p className="text-xs text-gray-600 mt-2">
-              💡 <strong>Tip:</strong> También puedes ingresar datos manualmente mes por mes usando el formulario.
-            </p>
           </AlertDescription>
         </Alert>
       )}
 
-      {/* ⭐ INGRESO DE DATOS UNIFICADO - Control Maestro */}
-      <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-6 space-y-4">
-        <div>
-          <h2 className="text-lg font-bold text-gray-900">Control Maestro - Ingreso de Datos</h2>
-          <p className="text-sm text-gray-600 mt-1">Este es el punto de entrada principal del dashboard. Los datos ingresados aquí alimentan todas las demás vistas (Metas, Webhook, SOP, etc.).</p>
+      {/* ⭐ CARGA DE DATOS UNIFICADA */}
+      <div className="bg-white border-2 border-blue-300 rounded-lg overflow-hidden">
+        <div className="bg-blue-50 px-4 py-3 border-b border-blue-200">
+          <h2 className="text-base font-bold text-gray-900">Carga de Datos</h2>
+          <p className="text-xs text-gray-600 mt-0.5">Elige tu método: Google Sheets, CSV o ingreso manual</p>
         </div>
-        
-        {/* Importador Google Sheets - Método Recomendado */}
-        <ImportadorGoogleSheets />
-        
-        {/* CSV/Manual - Métodos Alternativos */}
-        <IngresoDataUnificado />
+        <div className="p-4">
+          <Tabs defaultValue="sheets" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="sheets" className="text-sm">
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Google Sheets
+              </TabsTrigger>
+              <TabsTrigger value="csv-manual" className="text-sm">
+                <Upload className="h-4 w-4 mr-2" />
+                CSV / Manual
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="sheets">
+              <ImportadorGoogleSheets />
+            </TabsContent>
+            <TabsContent value="csv-manual">
+              <IngresoDataUnificado />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
 
       {/* Alert - Línea Dominante */}

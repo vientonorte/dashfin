@@ -1,9 +1,8 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { BarChart3, Bell, Settings, FileText, LayoutDashboard } from 'lucide-react';
+import { Bell, Settings, LayoutDashboard } from 'lucide-react';
 import { CFODashboardConsolidado } from './CFODashboardConsolidado';
 import { AlertasAutomaticas } from './AlertasAutomaticas';
 import { PanelConfig } from './PanelConfig';
-import { ReportesEjecutivos } from './ReportesEjecutivos';
 import { SyncIndicator } from './ui/SyncIndicator';
 import { useBusinessConfig } from '../contexts/BusinessConfigContext';
 
@@ -32,14 +31,7 @@ export function DashboardAdmin() {
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4"
             >
               <LayoutDashboard className="h-3.5 w-3.5 mr-1.5" />
-              Resumen
-            </TabsTrigger>
-            <TabsTrigger
-              value="analisis"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4"
-            >
-              <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
-              Análisis CFO
+              Dashboard
             </TabsTrigger>
             <TabsTrigger
               value="alertas"
@@ -55,20 +47,10 @@ export function DashboardAdmin() {
               <Settings className="h-3.5 w-3.5 mr-1.5" />
               Configuración
             </TabsTrigger>
-            <TabsTrigger
-              value="reportes"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4"
-            >
-              <FileText className="h-3.5 w-3.5 mr-1.5" />
-              Reportes
-            </TabsTrigger>
           </TabsList>
         </div>
 
         <TabsContent value="resumen" className="p-0 mt-0">
-          <CFODashboardConsolidado />
-        </TabsContent>
-        <TabsContent value="analisis" className="p-0 mt-0">
           <CFODashboardConsolidado />
         </TabsContent>
         <TabsContent value="alertas" className="p-6">
@@ -76,9 +58,6 @@ export function DashboardAdmin() {
         </TabsContent>
         <TabsContent value="config" className="p-6">
           <PanelConfig />
-        </TabsContent>
-        <TabsContent value="reportes" className="p-6">
-          <ReportesEjecutivos />
         </TabsContent>
       </Tabs>
     </div>
