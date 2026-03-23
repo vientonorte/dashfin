@@ -37,7 +37,7 @@ export function HistorialDiarioMejor() {
 
       {/* Estado Vacío - Dashboard sin datos */}
       {registros.length === 0 && (
-        <Alert className="border-2 border-primary/30 bg-primary/5">
+        <Alert className="border-2 border-primary/50 bg-primary/10">
           <Upload className="h-5 w-5 text-primary" />
           <AlertTitle className="text-base font-bold">Bienvenido a tu Dashboard Financiero</AlertTitle>
           <AlertDescription className="text-sm">

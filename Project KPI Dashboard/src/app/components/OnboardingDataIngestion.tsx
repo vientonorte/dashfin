@@ -40,6 +40,7 @@ type IngestionStep = 'choose' | 'upload' | 'preview' | 'success';
 type IngestionMethod = 'csv' | 'quick' | null;
 
 interface ParsedRow {
+  rowIndex: number;
   fecha: string;
   venta_cafe: number;
   venta_hotdesk: number;
@@ -108,12 +109,12 @@ export function OnboardingDataIngestion() {
   const stepRef = useRef<HTMLDivElement>(null);
 
   // Business config values
-  const COGS_CAFE_PERCENT = config.cogs_cafe_pct / 100;
-  const COGS_HOTDESK_PERCENT = config.cogs_hotdesk_pct / 100;
+  const COGS_CAFE_PERCENT = config.cogs_cafe_pct;
+  const COGS_HOTDESK_PERCENT = config.cogs_hotdesk_pct;
   const CAPEX_TOTAL = config.capex_total;
   const DERECHO_LLAVES = config.derecho_llaves;
   const METROS_CUADRADOS = config.metros_cuadrados;
-  const UMBRAL_GENIO = 150000;
+  const UMBRAL_GENIO = config.umbral_genio;
 
   // Focus management for accessibility
   useEffect(() => {
@@ -194,8 +195,14 @@ export function OnboardingDataIngestion() {
       // Parse fecha with auto-correction
       let fechaVal = vals[colMap.fecha] || '';
       if (/^\d{3}-\d{2}-\d{2}$/.test(fechaVal)) {
-        fechaVal = '2' + fechaVal;
-        autoCorrections.push(`Fila ${i + 1}: Fecha corregida a ${fechaVal}`);
+        const corrected = '2' + fechaVal;
+        const year = parseInt(corrected.substring(0, 4), 10);
+        if (year >= 2000 && year <= 2099) {
+          fechaVal = corrected;
+          autoCorrections.push(`Fila ${i + 1}: Fecha corregida a ${fechaVal}`);
+        } else {
+          rowErrors.push(`Fecha inválida: "${fechaVal}"`);
+        }
       } else if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaVal)) {
         rowErrors.push(`Fecha inválida: "${fechaVal}"`);
       }
@@ -217,6 +224,7 @@ export function OnboardingDataIngestion() {
       };
 
       const row: ParsedRow = {
+        rowIndex: i + 1,
         fecha: fechaVal,
         venta_cafe: parseNum(colMap.venta_cafe),
         venta_hotdesk: parseNum(colMap.venta_hotdesk),
@@ -742,7 +750,7 @@ export function OnboardingDataIngestion() {
                     .filter(r => r.errors.length > 0)
                     .slice(0, 5)
                     .map((r, i) => (
-                      <p key={i}>Fila {i + 2}: {r.errors.join(', ')}</p>
+                      <p key={i}>Fila {r.rowIndex}: {r.errors.join(', ')}</p>
                     ))}
                   <p className="mt-2 font-medium">Corrige el archivo y vuelve a cargarlo.</p>
                 </AlertDescription>
@@ -981,7 +989,7 @@ export function OnboardingDataIngestion() {
                 <AlertTitle className="text-sm">{parseResult.totalWarnings} advertencia{parseResult.totalWarnings > 1 ? 's' : ''}</AlertTitle>
                 <AlertDescription className="text-xs space-y-0.5 mt-1">
                   {parseResult.rows
-                    .flatMap((r, i) => r.warnings.map(w => `Fila ${i + 2}: ${w}`))
+                    .flatMap(r => r.warnings.map(w => `Fila ${r.rowIndex}: ${w}`))
                     .slice(0, 5)
                     .map((w, i) => (
                       <p key={i}>{w}</p>
