@@ -291,7 +291,7 @@ export function AICommandCenter() {
 
       {/* Chat Tab */}
       {activeTab === 'chat' && (
-        <Card className="flex flex-col" style={{ minHeight: 400 }}>
+        <Card className="flex flex-col min-h-[400px]">
           <CardHeader className="pb-2 pt-3 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium flex items-center gap-1.5">
               <Brain className="h-3.5 w-3.5" />

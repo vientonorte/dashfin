@@ -29,6 +29,8 @@ interface AIInsightsContextType {
 
 const AIInsightsContext = createContext<AIInsightsContextType | undefined>(undefined);
 
+let messageCounter = 0;
+
 // ---- Provider ----
 
 export function AIInsightsProvider({ children }: { children: ReactNode }) {
@@ -40,7 +42,7 @@ export function AIInsightsProvider({ children }: { children: ReactNode }) {
 
   const sendMessage = (message: string) => {
     const userMsg: ChatMessage = {
-      id: `user_${Date.now()}`,
+      id: `user_${Date.now()}_${++messageCounter}`,
       role: 'user',
       content: message,
       timestamp: new Date().toISOString(),
@@ -49,7 +51,7 @@ export function AIInsightsProvider({ children }: { children: ReactNode }) {
     const response = processQuery(message, registros, analysis);
 
     const assistantMsg: ChatMessage = {
-      id: `assistant_${Date.now()}`,
+      id: `assistant_${Date.now()}_${++messageCounter}`,
       role: 'assistant',
       content: response.answer,
       relatedInsights: response.relatedInsights,

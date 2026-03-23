@@ -71,6 +71,9 @@ function trendDirection(values: number[]): 'up' | 'down' | 'stable' {
   return 'stable';
 }
 
+// Inversión total del negocio (usada para cálculo de ROI y payback)
+const INVERSION_TOTAL = 37697000;
+
 function formatCLP(num: number): string {
   return `$${Math.round(num).toLocaleString('es-CL')}`;
 }
@@ -147,6 +150,7 @@ function generateDailyInsights(sorted: RegistroMensualTriple[]): AIInsight[] {
   // 1. Revenue trend
   const ventas = sorted.map(r => r.venta_total_clp);
   const ventaTrend = trendDirection(ventas);
+  const ventaChange = previous ? percentChange(latest.venta_total_clp, previous.venta_total_clp) : 0;
   insights.push({
     id: makeId('daily', idx++),
     category: 'daily',
@@ -156,7 +160,7 @@ function generateDailyInsights(sorted: RegistroMensualTriple[]): AIInsight[] {
       : ventaTrend === 'down'
         ? 'Ventas en tendencia bajista'
         : 'Ventas estables',
-    description: `Venta actual: ${formatCLP(latest.venta_total_clp)}${previous ? ` (${percentChange(latest.venta_total_clp, previous.venta_total_clp) > 0 ? '+' : ''}${percentChange(latest.venta_total_clp, previous.venta_total_clp).toFixed(1)}% vs período anterior)` : ''}.`,
+    description: `Venta actual: ${formatCLP(latest.venta_total_clp)}${previous ? ` (${ventaChange > 0 ? '+' : ''}${ventaChange.toFixed(1)}% vs período anterior)` : ''}.`,
     explanation: `Análisis basado en ${sorted.length} períodos. La tendencia se calcula comparando el promedio de los últimos 3 períodos vs los anteriores.`,
     metric: 'Venta Total',
     value: formatCLP(latest.venta_total_clp),
@@ -631,7 +635,7 @@ export function processQuery(
 
     case 'roi':
       return {
-        answer: `ROI mensual: ${(latest.roi * 100).toFixed(2)}%. ${latest.payback_days ? `Payback estimado: ${latest.payback_days} días.` : 'Payback no calculable con utilidad actual.'} Recuperación acumulada: ${((sorted.reduce((s, r) => s + r.utilidad_neta_clp, 0) / 37697000) * 100).toFixed(1)}% de la inversión.`,
+        answer: `ROI mensual: ${(latest.roi * 100).toFixed(2)}%. ${latest.payback_days ? `Payback estimado: ${latest.payback_days} días.` : 'Payback no calculable con utilidad actual.'} Recuperación acumulada: ${((sorted.reduce((s, r) => s + r.utilidad_neta_clp, 0) / INVERSION_TOTAL) * 100).toFixed(1)}% de la inversión.`,
         relatedInsights: analysis.dailyInsights.filter(i => i.metric === 'ROI'),
         followUp: '¿Quieres ver escenarios de recuperación?',
       };
