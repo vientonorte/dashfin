@@ -1,22 +1,25 @@
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Activity, BarChart3, FileText } from 'lucide-react';
+import { Activity, BarChart3, FileText, Coffee, Laptop, Briefcase } from 'lucide-react';
 import { useDashboard } from '../contexts/DashboardContext';
 import { SaludOperativa } from './SaludOperativa';
 import { AlertasAutomaticas } from './AlertasAutomaticas';
 import { TablaHistorial } from './TablaHistorial';
 import { SyncIndicator } from './ui/SyncIndicator';
+import { BusinessLineCard } from './ui/BusinessLineCard';
 import { useBusinessConfig } from '../contexts/BusinessConfigContext';
 
 export function DashboardGerente() {
-  const { registros, metricas } = useDashboard();
+  const { registros } = useDashboard();
   const { config } = useBusinessConfig();
   const ultimo = registros[0];
 
   const fmt = (n: number) =>
     new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
   const fmtPct = (n: number) => `${n.toFixed(1)}%`;
+
+  const totalVenta = ultimo
+    ? ultimo.venta_cafe_clp + ultimo.venta_hotdesk_clp + ultimo.venta_asesoria_clp
+    : 1;
 
   return (
     <div className="min-h-screen bg-background">
@@ -48,27 +51,34 @@ export function DashboardGerente() {
               <BarChart3 className="h-4 w-4" />
               Ventas por Línea — {new Date(ultimo.date).toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}
             </h2>
-            <div className="grid grid-cols-3 gap-4">
-              {[
-                { label: 'Cafetería', venta: ultimo.venta_cafe_clp, margen: ultimo.margen_cafe_percent },
-                { label: 'Hotdesk', venta: ultimo.venta_hotdesk_clp, margen: ultimo.margen_hotdesk_percent },
-                { label: 'Asesorías', venta: ultimo.venta_asesoria_clp, margen: ultimo.margen_asesoria_percent },
-              ].map(({ label, venta, margen }) => (
-                <Card key={label}>
-                  <CardHeader className="pb-1">
-                    <CardTitle className="text-xs text-muted-foreground">{label}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-xl font-bold">{fmt(venta)}</p>
-                    <Badge
-                      variant={margen >= 30 ? 'default' : 'destructive'}
-                      className="mt-1 text-xs"
-                    >
-                      {fmtPct(margen)} margen
-                    </Badge>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <BusinessLineCard
+                icon={Coffee}
+                label="Cafetería"
+                value={ultimo.venta_cafe_clp}
+                marginPercent={fmtPct(ultimo.margen_cafe_percent)}
+                sharePercent={(ultimo.venta_cafe_clp / totalVenta) * 100}
+                accentColor="orange"
+                formatter={fmt}
+              />
+              <BusinessLineCard
+                icon={Laptop}
+                label="Hotdesk"
+                value={ultimo.venta_hotdesk_clp}
+                marginPercent={fmtPct(ultimo.margen_hotdesk_percent)}
+                sharePercent={(ultimo.venta_hotdesk_clp / totalVenta) * 100}
+                accentColor="blue"
+                formatter={fmt}
+              />
+              <BusinessLineCard
+                icon={Briefcase}
+                label="Asesorías"
+                value={ultimo.venta_asesoria_clp}
+                marginPercent={fmtPct(ultimo.margen_asesoria_percent)}
+                sharePercent={(ultimo.venta_asesoria_clp / totalVenta) * 100}
+                accentColor="purple"
+                formatter={fmt}
+              />
             </div>
           </section>
         )}
