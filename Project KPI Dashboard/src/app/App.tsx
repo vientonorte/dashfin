@@ -2,6 +2,7 @@ import { Toaster } from 'sonner';
 import { DashboardProvider } from './contexts/DashboardContext';
 import { RoleProvider, useRole, ROLE_PERMISSIONS, RoleName } from './contexts/RoleContext';
 import { BusinessConfigProvider } from './contexts/BusinessConfigContext';
+import { AIInsightsProvider } from './contexts/AIInsightsContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { DashboardAdmin } from './components/DashboardAdmin';
 import { DashboardGerente } from './components/DashboardGerente';
@@ -54,14 +55,16 @@ export default function App() {
     <RoleProvider>
       <BusinessConfigProvider>
         <DashboardProvider>
-          <Toaster
-            position="top-right"
-            richColors
-            expand={false}
-            duration={3000}
-          />
-          <RoleSwitcher />
-          <AppRoutes />
+          <AIInsightsProvider>
+            <Toaster
+              position="top-right"
+              richColors
+              expand={false}
+              duration={3000}
+            />
+            <RoleSwitcher />
+            <AppRoutes />
+          </AIInsightsProvider>
         </DashboardProvider>
       </BusinessConfigProvider>
     </RoleProvider>

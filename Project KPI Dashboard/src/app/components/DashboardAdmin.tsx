@@ -1,8 +1,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Bell, Settings, LayoutDashboard } from 'lucide-react';
+import { Bell, Settings, LayoutDashboard, Brain } from 'lucide-react';
 import { CFODashboardConsolidado } from './CFODashboardConsolidado';
 import { AlertasAutomaticas } from './AlertasAutomaticas';
 import { PanelConfig } from './PanelConfig';
+import { AICommandCenter } from './AICommandCenter';
 import { SyncIndicator } from './ui/SyncIndicator';
 import { useBusinessConfig } from '../contexts/BusinessConfigContext';
 
@@ -23,9 +24,16 @@ export function DashboardAdmin() {
       </header>
 
       {/* Tabs del Admin */}
-      <Tabs defaultValue="resumen" className="w-full">
+      <Tabs defaultValue="ai" className="w-full">
         <div className="border-b bg-card px-6">
           <TabsList className="h-10 bg-transparent border-0 rounded-none gap-0">
+            <TabsTrigger
+              value="ai"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4"
+            >
+              <Brain className="h-3.5 w-3.5 mr-1.5" />
+              Inteligencia
+            </TabsTrigger>
             <TabsTrigger
               value="resumen"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4"
@@ -50,6 +58,9 @@ export function DashboardAdmin() {
           </TabsList>
         </div>
 
+        <TabsContent value="ai" className="p-0 mt-0">
+          <AICommandCenter />
+        </TabsContent>
         <TabsContent value="resumen" className="p-0 mt-0">
           <CFODashboardConsolidado />
         </TabsContent>
