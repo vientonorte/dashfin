@@ -1,9 +1,10 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Bell, Settings, LayoutDashboard, Brain } from 'lucide-react';
+import { Bell, Settings, LayoutDashboard, Brain, CreditCard } from 'lucide-react';
 import { CFODashboardConsolidado } from './CFODashboardConsolidado';
 import { AlertasAutomaticas } from './AlertasAutomaticas';
 import { PanelConfig } from './PanelConfig';
 import { AICommandCenter } from './AICommandCenter';
+import { EstadosCuenta } from './EstadosCuenta';
 import { SyncIndicator } from './ui/SyncIndicator';
 import { useBusinessConfig } from '../contexts/BusinessConfigContext';
 
@@ -55,6 +56,13 @@ export function DashboardAdmin() {
               <Settings className="h-3.5 w-3.5 mr-1.5" />
               Configuración
             </TabsTrigger>
+            <TabsTrigger
+              value="estados"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4"
+            >
+              <CreditCard className="h-3.5 w-3.5 mr-1.5" />
+              Estados de Cuenta
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -69,6 +77,9 @@ export function DashboardAdmin() {
         </TabsContent>
         <TabsContent value="config" className="p-6">
           <PanelConfig />
+        </TabsContent>
+        <TabsContent value="estados" className="p-0 mt-0">
+          <EstadosCuenta />
         </TabsContent>
       </Tabs>
     </div>
