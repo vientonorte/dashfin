@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { isSupabaseConfigured, fetchRegistros, upsertRegistros } from '../../lib/supabase';
 
 // ============================================================================
 // TIPOS - Triple Línea de Negocio (Café + Hotdesk + Asesorías)
@@ -159,20 +160,39 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const [rangoTemporal, setRangoTemporal] = useState<'1M' | '3M' | '6M' | '1A' | 'H'>('H');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Cargar datos desde localStorage o inicializar con simulación
+  // Cargar datos: Supabase primero, localStorage como fallback
   useEffect(() => {
-    const datos = cargarDesdeStorage();
-    if (datos.length > 0) {
-      setRegistrosState(datos);
+    let cancelled = false;
+    async function init() {
+      if (isSupabaseConfigured()) {
+        const remote = await fetchRegistros<RegistroMensualTriple>();
+        if (!cancelled && remote.length > 0) {
+          setRegistrosState(remote);
+          guardarEnStorage(remote); // sync local cache
+          return;
+        }
+      }
+      const local = cargarDesdeStorage();
+      if (!cancelled && local.length > 0) {
+        setRegistrosState(local);
+        // If Supabase is configured but empty, push local data up
+        if (isSupabaseConfigured()) {
+          upsertRegistros(local);
+        }
+      }
     }
-    // NO cargar simulación automáticamente - el usuario debe importar sus datos reales
+    init();
+    return () => { cancelled = true; };
   }, []);
 
-  // Guardar en localStorage cuando cambien los registros
-  const setRegistros = (nuevosRegistros: RegistroMensualTriple[]) => {
+  // Guardar en localStorage + Supabase cuando cambien los registros
+  const setRegistros = useCallback((nuevosRegistros: RegistroMensualTriple[]) => {
     setRegistrosState(nuevosRegistros);
     guardarEnStorage(nuevosRegistros);
-  };
+    if (isSupabaseConfigured()) {
+      upsertRegistros(nuevosRegistros);
+    }
+  }, []);
 
   // Filtrar registros según rango temporal y búsqueda
   const applySearch = (list: RegistroMensualTriple[]) => {
