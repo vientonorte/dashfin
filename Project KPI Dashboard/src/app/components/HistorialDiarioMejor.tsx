@@ -8,7 +8,7 @@ import { OnboardingDataIngestion } from './OnboardingDataIngestion';
 import { TablaHistorial } from './TablaHistorial';
 
 export function HistorialDiarioMejor() {
-  const { registros, metricas } = useDashboard();
+  const { registros, metricas, cargarDatosDemo } = useDashboard();
 
   const lineaDominanteInfo = {
     cafe: { nombre: 'Cafetería', emoji: '☕', color: 'orange', recomendacion: 'La cafetería genera el mayor margen. Optimizar rotación de mesas y ticket promedio.' },
@@ -43,6 +43,12 @@ export function HistorialDiarioMejor() {
           <AlertDescription className="text-sm">
             <p>Importa tus datos de venta para ver métricas, márgenes y ROI al instante.</p>
             <p className="text-xs text-muted-foreground mt-2">Solo necesitas un CSV o 3 números para empezar.</p>
+            <button
+              onClick={cargarDatosDemo}
+              className="mt-3 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary bg-primary/10 border border-primary/30 rounded-lg hover:bg-primary/20 transition-colors"
+            >
+              🎲 Cargar datos demo (12 meses)
+            </button>
           </AlertDescription>
         </Alert>
       )}

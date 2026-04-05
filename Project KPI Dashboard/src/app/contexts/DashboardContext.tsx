@@ -73,6 +73,9 @@ interface DashboardContextType {
   setRegistroActual: (registro: RegistroMensualTriple | null) => void;
   rangoTemporal: '1M' | '3M' | '6M' | '1A' | 'H';
   setRangoTemporal: (rango: '1M' | '3M' | '6M' | '1A' | 'H') => void;
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  cargarDatosDemo: () => void;
   registrosFiltrados: RegistroMensualTriple[];
   metricas: {
     recuperado: number;
@@ -154,6 +157,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const [registros, setRegistrosState] = useState<RegistroMensualTriple[]>([]);
   const [registroActual, setRegistroActual] = useState<RegistroMensualTriple | null>(null);
   const [rangoTemporal, setRangoTemporal] = useState<'1M' | '3M' | '6M' | '1A' | 'H'>('H');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Cargar datos desde localStorage o inicializar con simulación
   useEffect(() => {
@@ -170,10 +174,22 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     guardarEnStorage(nuevosRegistros);
   };
 
-  // Filtrar registros según rango temporal
+  // Filtrar registros según rango temporal y búsqueda
+  const applySearch = (list: RegistroMensualTriple[]) => {
+    if (!searchTerm.trim()) return list;
+    const term = searchTerm.trim().toLowerCase();
+    return list.filter(r =>
+      r.date.includes(term) ||
+      r.nota.toLowerCase().includes(term) ||
+      r.status.toLowerCase().includes(term) ||
+      r.linea_dominante.toLowerCase().includes(term) ||
+      r.alerta_canibalizacion.toLowerCase().includes(term)
+    );
+  };
+
   const registrosFiltrados = (() => {
     if (registros.length === 0) return [];
-    if (rangoTemporal === 'H') return registros;
+    if (rangoTemporal === 'H') return applySearch(registros);
 
     const mesesMap = {
       '1M': 1,
@@ -188,9 +204,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
     const filtrados = registros.filter(r => new Date(r.date) >= fechaLimite);
     
-    console.log(`📊 Filtro ${rangoTemporal}: ${filtrados.length} de ${registros.length} registros (desde ${fechaLimite.toLocaleDateString('es-CL')})`);
-    
-    return filtrados;
+    return applySearch(filtrados);
   })();
 
   // Calcular métricas globales
@@ -272,6 +286,11 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     };
   })();
 
+  const cargarDatosDemo = () => {
+    const demo = generarSimulacion12Meses();
+    setRegistros(demo);
+  };
+
   return (
     <DashboardContext.Provider value={{
       registros,
@@ -280,6 +299,9 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       setRegistroActual,
       rangoTemporal,
       setRangoTemporal,
+      searchTerm,
+      setSearchTerm,
+      cargarDatosDemo,
       registrosFiltrados,
       metricas
     }}>

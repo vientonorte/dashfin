@@ -24,8 +24,10 @@ import {
   History,
   Database,
   AlertCircle,
-  Upload
+  Upload,
+  Search
 } from 'lucide-react';
+import { Input } from './ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { 
   AlertDialog,
@@ -131,6 +133,8 @@ export function TablaHistorial() {
     setRegistroActual,
     rangoTemporal,
     setRangoTemporal,
+    searchTerm,
+    setSearchTerm,
     registrosFiltrados
   } = useDashboard();
 
@@ -379,6 +383,16 @@ export function TablaHistorial() {
                     </div>
                   </div>
                   <SelectorRango rangoTemporal={rangoTemporal} setRangoTemporal={setRangoTemporal} />
+                  <div className="relative w-48">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                    <Input
+                      type="text"
+                      placeholder="Buscar nota, fecha, status..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-8 h-8 text-xs"
+                    />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
