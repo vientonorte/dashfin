@@ -102,12 +102,12 @@ export function CFODashboard() {
   const calcularAnalisis = () => {
     const metrosCuadrados = 25;
     const revPSM = ventaData.ventaTotal / metrosCuadrados;
-    const laborCostPercent = (ventaData.costoLaboral / ventaData.ventaTotal) * 100;
+    const laborCostPercent = ventaData.ventaTotal > 0 ? (ventaData.costoLaboral / ventaData.ventaTotal) * 100 : 0;
     const ticketPromedio = ventaData.transacciones > 0 ? ventaData.ventaTotal / ventaData.transacciones : 0;
     
     const costosOperacionales = ventaData.costoLaboral + ventaData.otrosCostos;
     const margenBruto = ventaData.ventaTotal - costosOperacionales;
-    const margenNeto = (margenBruto / ventaData.ventaTotal) * 100;
+    const margenNeto = ventaData.ventaTotal > 0 ? (margenBruto / ventaData.ventaTotal) * 100 : 0;
     
     const alertaCritica = margenNeto < 30;
     
@@ -424,20 +424,24 @@ export function CFODashboard() {
                       Punto de entrada y gestión principal de tu negocio
                     </CardDescription>
                   </div>
-                  {registros.length > 0 && metricas && metricas.total_venta > 0 && (
+                  {registros.length > 0 && metricas && metricas.total_venta > 0 && (() => {
+                    const margenPercent = (metricas.total_utilidad_neta / metricas.total_venta) * 100;
+                    const estadoLabel = margenPercent >= 35 ? 'Excelente' : margenPercent >= 30 ? 'Normal' : 'Crítico';
+                    return (
                     <div className="flex flex-col items-end gap-1">
                       <Badge 
+                        aria-label={`Estado operativo: ${estadoLabel}`}
                         className={`text-lg px-4 py-2 ${
-                          ((metricas.total_utilidad_neta / metricas.total_venta) * 100) >= 35 
+                          margenPercent >= 35 
                             ? 'bg-green-500 hover:bg-green-600' 
-                            : ((metricas.total_utilidad_neta / metricas.total_venta) * 100) >= 30
+                            : margenPercent >= 30
                             ? 'bg-yellow-500 hover:bg-yellow-600'
                             : 'bg-red-500 hover:bg-red-600'
                         }`}
                       >
-                        {((metricas.total_utilidad_neta / metricas.total_venta) * 100) >= 35 
+                        {margenPercent >= 35 
                           ? '🚀 Excelente' 
-                          : ((metricas.total_utilidad_neta / metricas.total_venta) * 100) >= 30
+                          : margenPercent >= 30
                           ? '⚠️ Normal'
                           : '🔴 Crítico'
                         }
@@ -446,7 +450,8 @@ export function CFODashboard() {
                         Estado Operativo
                       </p>
                     </div>
-                  )}
+                    );
+                  })()}
                 </div>
               </CardHeader>
               <CardContent>

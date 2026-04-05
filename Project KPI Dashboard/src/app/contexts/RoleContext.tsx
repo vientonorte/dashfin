@@ -72,10 +72,12 @@ const RoleContext = createContext<RoleContextType>({
   setRole: () => {}
 });
 
+const VALID_ROLES = Object.keys(ROLE_PERMISSIONS) as RoleName[];
+
 export function RoleProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<RoleName>(() => {
     const saved = localStorage.getItem('dashfin_role');
-    return (saved as RoleName) || 'admin';
+    return saved && VALID_ROLES.includes(saved as RoleName) ? (saved as RoleName) : 'admin';
   });
 
   const handleSetRole = (newRole: RoleName) => {
