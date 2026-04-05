@@ -74,6 +74,12 @@ Modo debug (role switcher visible): `?debug=true`
 
 Push a `main` → GitHub Actions ejecuta build + deploy automático a GitHub Pages.
 
+## Changelog
+
+### Abril 2026
+- **TrendCharts**: nuevo componente `TrendCharts.tsx` en tab Dashboard — AreaChart de ingresos por línea (Café / Hotdesk / Asesorías) + LineChart de Márgen Neto, Margen Bruto y ROI con línea de referencia al 30%.
+- **Supabase**: instrucciones de configuración en `supabase/README.md`. Build validado con Node 22 + Vite 6.
+
 ---
 
 Rö · Abril 2026
