@@ -48,6 +48,7 @@ import { ReportesEjecutivos } from './ReportesEjecutivos';
 import { WebhooksMake } from './WebhooksMake';
 import { AlertasAutomaticas } from './AlertasAutomaticas';
 import { GlosarioTooltip } from './GlosarioTooltip';
+import { TrendCharts } from './TrendCharts';
 
 interface VentaData {
   fecha: string;
@@ -430,6 +431,9 @@ export function CFODashboardConsolidado() {
                     </CardContent>
                   </Card>
                 </div>
+
+                {/* TENDENCIAS */}
+                <TrendCharts />
 
                 {/* METAS POR ROL (Widget según filtro) */}
                 {rolFiltro && (
