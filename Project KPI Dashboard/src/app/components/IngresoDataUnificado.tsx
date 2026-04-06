@@ -42,9 +42,23 @@ export function IngresoDataUnificado() {
     setSuccess(false);
 
     try {
-      const text = await file.text();
+      let text: string;
+      try {
+        text = await file.text();
+      } catch {
+        throw new Error('No se pudo leer el archivo. Verifica que no esté corrupto y sea un archivo de texto válido.');
+      }
+
+      if (!text.trim()) {
+        throw new Error('El archivo está vacío.');
+      }
+
       const lines = text.trim().split('\n');
       
+      if (lines.length < 2) {
+        throw new Error('El CSV debe tener al menos una fila de encabezado y una fila de datos.');
+      }
+
       const header = lines[0].toLowerCase();
       if (!header.includes('fecha') || !header.includes('venta_cafe')) {
         throw new Error('CSV inválido. Debe tener columnas: Fecha, Venta_Cafe, Venta_Hotdesk, Venta_Asesorias, etc.');
@@ -68,13 +82,13 @@ export function IngresoDataUnificado() {
           
           datosDiarios.push({
             fecha: fechaNormalizada,
-            venta_cafe: parseInt(valores[1]),
-            venta_hotdesk: parseInt(valores[2]),
-            venta_asesorias: parseInt(valores[3]),
-            gasto_insumos: parseInt(valores[4]),
-            gasto_staff_fijo: parseInt(valores[5]),
-            utilidad_neta: parseInt(valores[6]),
-            revpsm: parseInt(valores[7])
+            venta_cafe: Math.max(0, parseInt(valores[1]) || 0),
+            venta_hotdesk: Math.max(0, parseInt(valores[2]) || 0),
+            venta_asesorias: Math.max(0, parseInt(valores[3]) || 0),
+            gasto_insumos: Math.max(0, parseInt(valores[4]) || 0),
+            gasto_staff_fijo: Math.max(0, parseInt(valores[5]) || 0),
+            utilidad_neta: parseInt(valores[6]) || 0,
+            revpsm: parseInt(valores[7]) || 0
           });
         }
       }
@@ -140,12 +154,12 @@ export function IngresoDataUnificado() {
         venta_cafe_clp: totalCafe,
         cogs_cafe_clp: cogsCafe,
         margen_cafe_clp: margenCafe,
-        margen_cafe_percent: (margenCafe / totalCafe) * 100,
+        margen_cafe_percent: totalCafe > 0 ? (margenCafe / totalCafe) * 100 : 0,
         
         venta_hotdesk_clp: totalHotdesk,
         cogs_hotdesk_clp: cogsHotdesk,
         margen_hotdesk_clp: margenHotdesk,
-        margen_hotdesk_percent: (margenHotdesk / totalHotdesk) * 100,
+        margen_hotdesk_percent: totalHotdesk > 0 ? (margenHotdesk / totalHotdesk) * 100 : 0,
         
         venta_asesoria_clp: totalAsesorias,
         cogs_asesoria_clp: cogsAsesoria,
@@ -155,11 +169,11 @@ export function IngresoDataUnificado() {
         venta_total_clp: ventaTotal,
         cogs_total_clp: cogsTotal,
         margen_bruto_clp: margenBruto,
-        margen_bruto_percent: (margenBruto / ventaTotal) * 100,
+        margen_bruto_percent: ventaTotal > 0 ? (margenBruto / ventaTotal) * 100 : 0,
         
         gastos_operacion_clp: totalGastosStaff,
         utilidad_neta_clp: utilidadNeta,
-        margen_neto_percent: (utilidadNeta / ventaTotal) * 100,
+        margen_neto_percent: ventaTotal > 0 ? (utilidadNeta / ventaTotal) * 100 : 0,
         
         roi,
         roi_mean_30d,
@@ -198,6 +212,10 @@ export function IngresoDataUnificado() {
       setProcessing(false);
     }
   };
+
+  // Sanitize note text: strip HTML/script tags and limit length
+  const sanitizeNota = (text: string): string =>
+    text.replace(/<[^>]*>/g, '').replace(/[<>{}]/g, '').slice(0, 500);
 
   const guardarManual = () => {
     if (ventaCafe + ventaHotdesk + ventaAsesoria === 0) {
@@ -273,11 +291,11 @@ export function IngresoDataUnificado() {
         venta_total_clp: ventaTotal,
         cogs_total_clp: cogsTotal,
         margen_bruto_clp: margenBruto,
-        margen_bruto_percent: (margenBruto / ventaTotal) * 100,
+        margen_bruto_percent: ventaTotal > 0 ? (margenBruto / ventaTotal) * 100 : 0,
         
         gastos_operacion_clp: gastosStaff,
         utilidad_neta_clp: utilidadNeta,
-        margen_neto_percent: (utilidadNeta / ventaTotal) * 100,
+        margen_neto_percent: ventaTotal > 0 ? (utilidadNeta / ventaTotal) * 100 : 0,
         
         roi,
         roi_mean_30d,
@@ -289,7 +307,7 @@ export function IngresoDataUnificado() {
         alerta_canibalizacion: alertaCanibalizacion,
         linea_dominante: lineaDominante,
         
-        nota: nota,
+        nota: sanitizeNota(nota),
         updated_at: new Date().toISOString()
       };
 
@@ -456,8 +474,9 @@ export function IngresoDataUnificado() {
                 <Input
                   type="number"
                   placeholder="0"
+                  min={0}
                   value={ventaCafe || ''}
-                  onChange={(e) => setVentaCafe(Number(e.target.value))}
+                  onChange={(e) => setVentaCafe(Math.max(0, Number(e.target.value)))}
                   className="text-sm"
                 />
               </div>
@@ -469,8 +488,9 @@ export function IngresoDataUnificado() {
                 <Input
                   type="number"
                   placeholder="0"
+                  min={0}
                   value={ventaHotdesk || ''}
-                  onChange={(e) => setVentaHotdesk(Number(e.target.value))}
+                  onChange={(e) => setVentaHotdesk(Math.max(0, Number(e.target.value)))}
                   className="text-sm"
                 />
               </div>
@@ -482,8 +502,9 @@ export function IngresoDataUnificado() {
                 <Input
                   type="number"
                   placeholder="0"
+                  min={0}
                   value={ventaAsesoria || ''}
-                  onChange={(e) => setVentaAsesoria(Number(e.target.value))}
+                  onChange={(e) => setVentaAsesoria(Math.max(0, Number(e.target.value)))}
                   className="text-sm"
                 />
               </div>
@@ -495,8 +516,9 @@ export function IngresoDataUnificado() {
                 id="gastos"
                 type="number"
                 placeholder="3450000"
+                min={0}
                 value={gastosStaff || ''}
-                onChange={(e) => setGastosStaff(Number(e.target.value))}
+                onChange={(e) => setGastosStaff(Math.max(0, Number(e.target.value)))}
                 className="text-sm"
               />
             </div>

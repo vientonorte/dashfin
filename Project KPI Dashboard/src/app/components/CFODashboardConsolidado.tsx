@@ -58,7 +58,7 @@ interface VentaData {
 }
 
 export function CFODashboardConsolidado() {
-  const { registros } = useDashboard();
+  const { registros, loading } = useDashboard();
   const [mesFiltro, setMesFiltro] = useState<string>('todos');
   const [rolFiltro, setRolFiltro] = useState<'cfo' | 'socio-gerente' | 'colaborador'>('cfo');
   const [loadingAnalisis, setLoadingAnalisis] = useState(false);
@@ -146,6 +146,18 @@ export function CFODashboardConsolidado() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50">
+      {loading && (
+        <div className="max-w-[1600px] mx-auto p-4 sm:p-6 space-y-6">
+          <Skeleton className="h-28 w-full rounded-xl" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Skeleton className="h-36 w-full" />
+            <Skeleton className="h-36 w-full" />
+            <Skeleton className="h-36 w-full" />
+          </div>
+          <Skeleton className="h-64 w-full" />
+        </div>
+      )}
+      {!loading && (
       <div className="max-w-[1600px] mx-auto p-4 sm:p-6 space-y-6">
         
         {/* HEADER CON BADGE DE CONSOLIDACIÓN */}
@@ -857,6 +869,7 @@ export function CFODashboardConsolidado() {
         </Tabs>
 
       </div>
+      )}
     </div>
   );
 }

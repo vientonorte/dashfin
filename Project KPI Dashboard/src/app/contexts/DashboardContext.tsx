@@ -78,6 +78,7 @@ interface DashboardContextType {
   setSearchTerm: (term: string) => void;
   cargarDatosDemo: () => void;
   registrosFiltrados: RegistroMensualTriple[];
+  loading: boolean;
   metricas: {
     recuperado: number;
     porcentajeRecuperado: number;
@@ -159,26 +160,31 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const [registroActual, setRegistroActual] = useState<RegistroMensualTriple | null>(null);
   const [rangoTemporal, setRangoTemporal] = useState<'1M' | '3M' | '6M' | '1A' | 'H'>('H');
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
 
   // Cargar datos: Supabase primero, localStorage como fallback
   useEffect(() => {
     let cancelled = false;
     async function init() {
-      if (isSupabaseConfigured()) {
-        const remote = await fetchRegistros<RegistroMensualTriple>();
-        if (!cancelled && remote.length > 0) {
-          setRegistrosState(remote);
-          guardarEnStorage(remote); // sync local cache
-          return;
+      try {
+        if (isSupabaseConfigured()) {
+          const remote = await fetchRegistros<RegistroMensualTriple>();
+          if (!cancelled && remote.length > 0) {
+            setRegistrosState(remote);
+            guardarEnStorage(remote); // sync local cache
+            return;
+          }
+        }
+        const local = cargarDesdeStorage();
+        if (!cancelled && local.length > 0) {
+          setRegistrosState(local);
+          // If Supabase is configured but empty, push local data up
+          if (isSupabaseConfigured()) {
+            upsertRegistros(local);
         }
       }
-      const local = cargarDesdeStorage();
-      if (!cancelled && local.length > 0) {
-        setRegistrosState(local);
-        // If Supabase is configured but empty, push local data up
-        if (isSupabaseConfigured()) {
-          upsertRegistros(local);
-        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
     init();
@@ -249,9 +255,9 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     const genio = registrosFiltrados.filter(r => r.status === 'Genio').length;
     const figura = registrosFiltrados.filter(r => r.status === 'Figura').length;
 
-    const paybackMeses = mediaROI > 0
+    const paybackMeses = mediaROI > 0 && recuperado < 37697000
       ? Math.ceil(((37697000 - recuperado) / 37697000) / (mediaROI / 100))
-      : 999;
+      : recuperado >= 37697000 ? 0 : Infinity;
 
     // Nuevas métricas por línea
     const totalCafe = registrosFiltrados.reduce((sum, r) => sum + r.margen_cafe_clp, 0);
@@ -323,6 +329,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       setSearchTerm,
       cargarDatosDemo,
       registrosFiltrados,
+      loading,
       metricas
     }}>
       {children}

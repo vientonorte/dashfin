@@ -6,9 +6,16 @@ import { PanelConfig } from './PanelConfig';
 import { AICommandCenter } from './AICommandCenter';
 import { SyncIndicator } from './ui/SyncIndicator';
 import { useBusinessConfig } from '../contexts/BusinessConfigContext';
+import { useDashboard } from '../contexts/DashboardContext';
 
 export function DashboardAdmin() {
   const { config } = useBusinessConfig();
+  const { setSearchTerm, setRangoTemporal } = useDashboard();
+
+  const handleTabChange = () => {
+    setSearchTerm('');
+    setRangoTemporal('H');
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -24,7 +31,7 @@ export function DashboardAdmin() {
       </header>
 
       {/* Tabs del Admin */}
-      <Tabs defaultValue="ai" className="w-full">
+      <Tabs defaultValue="ai" className="w-full" onValueChange={handleTabChange}>
         <div className="border-b bg-card px-6">
           <TabsList className="h-10 bg-transparent border-0 rounded-none gap-0">
             <TabsTrigger

@@ -156,8 +156,6 @@ export function TablaHistorial() {
   };
 
   const eliminarRegistro = (date: string) => {
-    if (!confirm('¿Estás seguro de eliminar este registro?')) return;
-    
     const nuevosRegistros = registros.filter(r => r.date !== date);
     setRegistros(nuevosRegistros);
   };
@@ -330,6 +328,20 @@ export function TablaHistorial() {
 
   return (
     <div className="space-y-4">
+      {/* Zero-state: no data loaded yet */}
+      {registros.length === 0 && (
+        <Card className="border-dashed border-2 border-gray-300">
+          <CardContent className="py-12 text-center space-y-4">
+            <Database className="h-12 w-12 mx-auto text-gray-300" />
+            <div>
+              <p className="text-lg font-semibold text-gray-600">Sin datos financieros</p>
+              <p className="text-sm text-gray-400 mt-1">
+                Importa un CSV con datos diarios o usa el formulario manual para comenzar.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       {registros.length > 0 && (
         <>
           {/* Gráfico Unificado con Switch (Margen / ROI) */}
@@ -607,14 +619,37 @@ export function TablaHistorial() {
                             </span>
                           </TableCell>
                           <TableCell className="py-3">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 w-7 p-0 hover:bg-red-50"
-                              onClick={() => eliminarRegistro(registro.date)}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0 hover:bg-red-50"
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle className="flex items-center gap-2">
+                                    <AlertCircle className="h-5 w-5 text-red-600" />
+                                    ¿Eliminar este registro?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Se eliminará el registro de {new Date(registro.date).toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}. Esta acción no se puede deshacer.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => eliminarRegistro(registro.date)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Sí, eliminar
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </TableCell>
                         </TableRow>
                       ))}
