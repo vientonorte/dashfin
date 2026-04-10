@@ -1,70 +1,84 @@
-import { Toaster } from 'sonner';
+import { CFODashboardConsolidado } from './components/CFODashboardConsolidado';
 import { DashboardProvider } from './contexts/DashboardContext';
-import { RoleProvider, useRole, ROLE_PERMISSIONS, RoleName } from './contexts/RoleContext';
+import { RoleProvider, useRole, ROLE_PERMISSIONS } from './contexts/RoleContext';
+import type { RoleName } from './contexts/RoleContext';
 import { BusinessConfigProvider } from './contexts/BusinessConfigContext';
-import { AIInsightsProvider } from './contexts/AIInsightsContext';
+import { Toaster } from 'sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { DashboardAdmin } from './components/DashboardAdmin';
 import { DashboardGerente } from './components/DashboardGerente';
 import { DashboardBarista } from './components/DashboardBarista';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/select';
+import { Button } from './components/ui/button';
+import { Users } from 'lucide-react';
 
-const isDebug = new URLSearchParams(window.location.search).has('debug');
+// ============================================================================
+// ROLE SELECTOR (floating, always visible)
+// ============================================================================
 
-// Role switcher — visible solo en modo debug (?debug=true)
-function RoleSwitcher() {
-  const { role, setRole, profile } = useRole();
-  if (!isDebug) return null;
+function RoleSelector() {
+  const { role, setRole } = useRole();
+  const roles = Object.values(ROLE_PERMISSIONS);
 
   return (
-    <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-card border rounded-lg shadow-lg p-2">
-      <span className="text-xs text-muted-foreground">Rol:</span>
-      <Select value={role} onValueChange={v => setRole(v as RoleName)}>
-        <SelectTrigger className="h-7 text-xs w-40">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {(Object.keys(ROLE_PERMISSIONS) as RoleName[]).map(r => (
-            <SelectItem key={r} value={r} className="text-xs">
-              {ROLE_PERMISSIONS[r].displayName}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+    <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border px-3 py-2">
+      <Users className="h-4 w-4 text-muted-foreground" />
+      <select
+        value={role}
+        onChange={(e) => setRole(e.target.value as RoleName)}
+        className="text-xs font-medium bg-transparent border-none outline-none cursor-pointer pr-2"
+        aria-label="Seleccionar rol"
+      >
+        {roles.map((r) => (
+          <option key={r.role} value={r.role}>
+            {r.displayName}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
 
-function AppRoutes() {
+// ============================================================================
+// DASHBOARD VIEW BY ROLE
+// ============================================================================
+
+function DashboardByRole() {
   const { role } = useRole();
 
-  return (
-    <main id="main-content" role="main" aria-label="Dashboard Principal">
-      <ErrorBoundary>
-        {role === 'admin'    && <DashboardAdmin />}
-        {role === 'gerente'  && <DashboardGerente />}
-        {role === 'barista1' && <DashboardBarista linea="cafe" />}
-        {role === 'barista2' && <DashboardBarista linea="hotdesk" />}
-      </ErrorBoundary>
-    </main>
-  );
+  switch (role) {
+    case 'admin':
+      return <CFODashboardConsolidado />;
+    case 'gerente':
+      return <DashboardGerente />;
+    case 'barista1':
+      return <DashboardBarista linea="cafe" />;
+    case 'barista2':
+      return <DashboardBarista linea="hotdesk" />;
+    default:
+      return <CFODashboardConsolidado />;
+  }
 }
+
+// ============================================================================
+// APP ROOT
+// ============================================================================
 
 export default function App() {
   return (
     <RoleProvider>
       <BusinessConfigProvider>
         <DashboardProvider>
-          <AIInsightsProvider>
-            <Toaster
-              position="top-right"
-              richColors
-              expand={false}
-              duration={3000}
-            />
-            <RoleSwitcher />
-            <AppRoutes />
-          </AIInsightsProvider>
+          <Toaster
+            position="top-right"
+            richColors
+            expand={false}
+            duration={3000}
+          />
+          <RoleSelector />
+          <main id="main-content" role="main" aria-label="Dashboard Principal">
+            <ErrorBoundary>
+              <DashboardByRole />
+            </ErrorBoundary>
+          </main>
         </DashboardProvider>
       </BusinessConfigProvider>
     </RoleProvider>

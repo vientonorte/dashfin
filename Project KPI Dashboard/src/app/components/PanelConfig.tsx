@@ -3,130 +3,158 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Separator } from './ui/separator';
-import { Settings, RotateCcw, Save } from 'lucide-react';
+import { Alert, AlertDescription } from './ui/alert';
 import { useBusinessConfig } from '../contexts/BusinessConfigContext';
 import { useRole } from '../contexts/RoleContext';
 import { AccessDenied } from './ui/AccessDenied';
+import { Settings, Save, RotateCcw, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function PanelConfig() {
   const { can } = useRole();
   const { config, updateConfig, resetConfig } = useBusinessConfig();
+  const [draft, setDraft] = useState(config);
+  const [saved, setSaved] = useState(false);
 
-  // Local form state
-  const [form, setForm] = useState({ ...config });
-
-  if (!can('edit:business_config')) {
-    return <AccessDenied message="Solo el CFO puede editar la configuración del negocio." />;
+  if (!can('view:config_panel')) {
+    return <AccessDenied message="Solo el administrador puede acceder a la configuración." />;
   }
 
-  const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    const isNum = typeof config[key] === 'number';
-    setForm(prev => ({ ...prev, [key]: isNum ? parseFloat(raw) || 0 : raw }));
-  };
-
   const handleSave = () => {
-    updateConfig(form);
+    updateConfig(draft);
+    setSaved(true);
     toast.success('Configuración guardada');
+    setTimeout(() => setSaved(false), 2000);
   };
 
   const handleReset = () => {
     resetConfig();
+    setDraft(config);
     toast.info('Configuración restaurada a valores por defecto');
   };
 
-  const field = (label: string, key: keyof typeof form, hint?: string) => (
+  const field = (
+    label: string,
+    key: keyof typeof draft,
+    type: 'text' | 'number' = 'number',
+    hint?: string
+  ) => (
     <div className="space-y-1">
-      <Label className="text-xs">{label}</Label>
+      <Label htmlFor={key} className="text-xs font-medium">
+        {label}
+      </Label>
       <Input
-        type={typeof config[key] === 'number' ? 'number' : 'text'}
-        value={form[key] as string | number}
-        onChange={set(key)}
+        id={key}
+        type={type}
+        value={draft[key]}
+        onChange={(e) =>
+          setDraft((prev) => ({
+            ...prev,
+            [key]: type === 'number' ? Number(e.target.value) : e.target.value,
+          }))
+        }
         className="h-8 text-sm"
+        disabled={!can('edit:business_config')}
       />
-      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
     </div>
   );
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <div className="flex items-center gap-2">
-        <Settings className="h-5 w-5" />
-        <h2 className="text-lg font-semibold">Configuración del Negocio</h2>
-        <Badge variant="secondary">Solo Admin</Badge>
-      </div>
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Settings className="h-5 w-5" />
+          Configuración del Negocio
+        </CardTitle>
+        <CardDescription>
+          Parámetros centralizados — se aplican a todo el dashboard
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Identidad */}
+        <div>
+          <h3 className="text-sm font-semibold mb-3">Identidad</h3>
+          <div className="grid grid-cols-2 gap-4">
+            {field('Nombre del local', 'nombre_local', 'text')}
+            {field('Metros cuadrados', 'metros_cuadrados', 'number')}
+          </div>
+        </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Identidad</CardTitle>
-          <CardDescription className="text-xs">Nombre e información básica del local</CardDescription>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-4">
-          {field('Nombre del local', 'nombre_local')}
-          {field('Metros cuadrados', 'metros_cuadrados', 'm²')}
-        </CardContent>
-      </Card>
+        {/* Inversión */}
+        <div>
+          <h3 className="text-sm font-semibold mb-3">Inversión (CLP)</h3>
+          <div className="grid grid-cols-2 gap-4">
+            {field('CAPEX Total', 'capex_total')}
+            {field('Derecho de Llaves', 'derecho_llaves')}
+          </div>
+        </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Inversión (CAPEX)</CardTitle>
-          <CardDescription className="text-xs">Valores en CLP</CardDescription>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-4">
-          {field('CAPEX Total', 'capex_total', 'Inversión total del proyecto')}
-          {field('Derecho de Llaves', 'derecho_llaves', 'Costo de entrada al local')}
-        </CardContent>
-      </Card>
+        {/* COGS */}
+        <div>
+          <h3 className="text-sm font-semibold mb-3">COGS por Línea (decimal)</h3>
+          <div className="grid grid-cols-3 gap-4">
+            {field('Café', 'cogs_cafe_pct', 'number', '0.32 = 32%')}
+            {field('Hotdesk', 'cogs_hotdesk_pct', 'number', '0.075 = 7.5%')}
+            {field('Asesorías', 'cogs_asesorias_pct', 'number', '0 = 0%')}
+          </div>
+        </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">COGS por Línea</CardTitle>
-          <CardDescription className="text-xs">Porcentaje decimal (ej: 0.32 = 32%)</CardDescription>
-        </CardHeader>
-        <CardContent className="grid grid-cols-3 gap-4">
-          {field('Cafetería', 'cogs_cafe_pct', '~32%')}
-          {field('Hotdesk', 'cogs_hotdesk_pct', '~7.5%')}
-          {field('Asesorías', 'cogs_asesorias_pct', '0%')}
-        </CardContent>
-      </Card>
+        {/* Umbrales */}
+        <div>
+          <h3 className="text-sm font-semibold mb-3">Umbrales de Alerta</h3>
+          <div className="grid grid-cols-3 gap-4">
+            {field('Genio (CLP)', 'umbral_genio', 'number', 'Utilidad mínima para Genio')}
+            {field('Margen Crítico', 'umbral_margen_critico', 'number', '0.30 = 30%')}
+            {field('Ocupación Mín.', 'umbral_ocupacion_minima', 'number', '0.50 = 50%')}
+          </div>
+        </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Umbrales de Alerta</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-3 gap-4">
-          {field('Umbral Genio (CLP)', 'umbral_genio', 'Utilidad mínima para "Genio"')}
-          {field('Margen Crítico', 'umbral_margen_critico', 'Decimal (ej: 0.30)')}
-          {field('Ocupación Mínima', 'umbral_ocupacion_minima', 'Decimal hotdesk')}
-        </CardContent>
-      </Card>
+        {/* Sincronización */}
+        <div>
+          <h3 className="text-sm font-semibold mb-3">Google Sheets</h3>
+          <div className="grid grid-cols-1 gap-4">
+            {field('Sheet ID', 'sheets_id', 'text')}
+            <div className="grid grid-cols-2 gap-4">
+              {field('Tab', 'sheets_tab', 'text')}
+              {field('Sync (min)', 'sync_interval_min', 'number', 'Intervalo de sincronización')}
+            </div>
+          </div>
+        </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Google Sheets Sync</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-4">
-          {field('Sheet ID', 'sheets_id')}
-          {field('Nombre de la hoja', 'sheets_tab', 'Ej: Hoja1')}
-          {field('Intervalo de sync (min)', 'sync_interval_min', 'Cada cuántos minutos sincronizar')}
-        </CardContent>
-      </Card>
+        {/* Actions */}
+        <div className="flex gap-3 pt-2">
+          <Button onClick={handleSave} className="flex-1" disabled={!can('edit:business_config')}>
+            {saved ? (
+              <>
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Guardado
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Guardar Cambios
+              </>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleReset}
+            disabled={!can('edit:business_config')}
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Restaurar
+          </Button>
+        </div>
 
-      <Separator />
-
-      <div className="flex gap-3">
-        <Button onClick={handleSave} className="gap-2">
-          <Save className="h-4 w-4" />
-          Guardar cambios
-        </Button>
-        <Button variant="outline" onClick={handleReset} className="gap-2">
-          <RotateCcw className="h-4 w-4" />
-          Restaurar defaults
-        </Button>
-      </div>
-    </div>
+        {saved && (
+          <Alert className="border-emerald-200 bg-emerald-50">
+            <AlertDescription className="text-emerald-700 text-xs">
+              ✅ Los cambios se aplicaron a todo el dashboard automáticamente.
+            </AlertDescription>
+          </Alert>
+        )}
+      </CardContent>
+    </Card>
   );
 }

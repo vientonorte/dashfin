@@ -1,111 +1,108 @@
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { Coffee, Wifi, Users, TrendingUp } from 'lucide-react';
 import { useDashboard } from '../contexts/DashboardContext';
 import { useBusinessConfig } from '../contexts/BusinessConfigContext';
+import { Coffee, Wifi, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
 
-type Semaforo = 'verde' | 'amarillo' | 'rojo';
-
-function getSemaforo(value: number, umbralOk: number, umbralWarn: number): Semaforo {
-  if (value >= umbralOk) return 'verde';
-  if (value >= umbralWarn) return 'amarillo';
-  return 'rojo';
+function formatChileno(n: number): string {
+  return Math.round(n).toLocaleString('es-CL');
 }
 
-const SEMAFORO_COLORS: Record<Semaforo, string> = {
-  verde: 'bg-emerald-500',
-  amarillo: 'bg-amber-400',
-  rojo: 'bg-red-500'
-};
-
-const SEMAFORO_BADGE: Record<Semaforo, 'default' | 'secondary' | 'destructive'> = {
-  verde: 'default',
-  amarillo: 'secondary',
-  rojo: 'destructive'
-};
-
-interface KPICardProps {
-  icon: React.ReactNode;
+interface SaludItem {
   label: string;
   value: string;
-  meta: string;
-  semaforo: Semaforo;
-}
-
-function KPICard({ icon, label, value, meta, semaforo }: KPICardProps) {
-  return (
-    <Card>
-      <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
-        <div className={`h-2.5 w-2.5 rounded-full ${SEMAFORO_COLORS[semaforo]}`} />
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">{icon}</span>
-          <span className="text-2xl font-bold">{value}</span>
-        </div>
-        <Badge variant={SEMAFORO_BADGE[semaforo]} className="mt-2 text-xs">
-          Meta: {meta}
-        </Badge>
-      </CardContent>
-    </Card>
-  );
+  icon: React.ReactNode;
+  status: 'verde' | 'amarillo' | 'rojo';
 }
 
 export function SaludOperativa() {
-  const { registros, metricas } = useDashboard();
+  const { registrosFiltrados, metricas } = useDashboard();
   const { config } = useBusinessConfig();
-  const ultimo = registros[0];
 
+  const ultimo = registrosFiltrados[0];
   if (!ultimo) {
     return (
       <Card>
-        <CardContent className="pt-6 text-center text-muted-foreground">
-          Sin datos disponibles
-        </CardContent>
+        <CardHeader>
+          <CardTitle className="text-lg">Salud Operativa</CardTitle>
+          <CardDescription>Sin datos disponibles</CardDescription>
+        </CardHeader>
       </Card>
     );
   }
 
-  const ventaTotal = ultimo.venta_total_clp;
-  const revpsm = ultimo.revpsm_clp_m2;
   const margenNeto = ultimo.margen_neto_percent;
-  const ticketCafe = ultimo.venta_cafe_clp > 0 ? ultimo.venta_cafe_clp / 100 : 0; // aproximado
+  const revpsm = ultimo.revpsm_clp_m2;
+  const ticketCafe = ultimo.venta_cafe_clp > 0 ? ultimo.venta_cafe_clp / 100 : 0; // approx per tx
+  const ventaTotal = ultimo.venta_total_clp;
 
-  const fmt = (n: number) =>
-    new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
-  const fmtPct = (n: number) => `${n.toFixed(1)}%`;
+  const items: SaludItem[] = [
+    {
+      label: 'Venta del día',
+      value: `$${formatChileno(ventaTotal)}`,
+      icon: <DollarSign className="h-5 w-5" />,
+      status: ventaTotal > 0 ? 'verde' : 'rojo',
+    },
+    {
+      label: 'Margen Neto',
+      value: `${margenNeto.toFixed(1)}%`,
+      icon: margenNeto >= config.umbral_margen_critico * 100
+        ? <TrendingUp className="h-5 w-5" />
+        : <TrendingDown className="h-5 w-5" />,
+      status: margenNeto >= config.umbral_margen_critico * 100 ? 'verde'
+        : margenNeto >= 20 ? 'amarillo' : 'rojo',
+    },
+    {
+      label: 'RevPSM',
+      value: `$${formatChileno(revpsm)}/m²`,
+      icon: <Wifi className="h-5 w-5" />,
+      status: revpsm >= 250_000 ? 'verde' : revpsm >= 120_000 ? 'amarillo' : 'rojo',
+    },
+    {
+      label: 'Ticket Café',
+      value: `$${formatChileno(ticketCafe)}`,
+      icon: <Coffee className="h-5 w-5" />,
+      status: ticketCafe >= 6_500 ? 'verde' : ticketCafe >= 4_000 ? 'amarillo' : 'rojo',
+    },
+  ];
+
+  const colorMap = {
+    verde: 'bg-emerald-100 text-emerald-700 border-emerald-300',
+    amarillo: 'bg-amber-100 text-amber-700 border-amber-300',
+    rojo: 'bg-red-100 text-red-700 border-red-300',
+  };
+
+  const dotMap = {
+    verde: 'bg-emerald-500',
+    amarillo: 'bg-amber-500',
+    rojo: 'bg-red-500',
+  };
 
   return (
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-      <KPICard
-        icon={<TrendingUp className="h-4 w-4" />}
-        label="Venta Total"
-        value={fmt(ventaTotal)}
-        meta={fmt(metricas.total_venta / Math.max(registros.length, 1))}
-        semaforo={getSemaforo(ventaTotal, metricas.total_venta / Math.max(registros.length, 1) * 0.9, metricas.total_venta / Math.max(registros.length, 1) * 0.7)}
-      />
-      <KPICard
-        icon={<Wifi className="h-4 w-4" />}
-        label="RevPSM"
-        value={fmt(revpsm)}
-        meta={fmt(metricas.revpsm_promedio)}
-        semaforo={getSemaforo(revpsm, metricas.revpsm_promedio * 0.9, metricas.revpsm_promedio * 0.7)}
-      />
-      <KPICard
-        icon={<Users className="h-4 w-4" />}
-        label="Margen Neto"
-        value={fmtPct(margenNeto)}
-        meta={fmtPct(config.umbral_margen_critico * 100)}
-        semaforo={getSemaforo(margenNeto, config.umbral_margen_critico * 100, config.umbral_margen_critico * 60)}
-      />
-      <KPICard
-        icon={<Coffee className="h-4 w-4" />}
-        label="Ticket Café (est.)"
-        value={fmt(ticketCafe)}
-        meta="$5.000"
-        semaforo={getSemaforo(ticketCafe, 5000, 3000)}
-      />
-    </div>
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg">🚦 Salud Operativa</CardTitle>
+        <CardDescription>Resumen rápido del negocio</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 gap-3">
+          {items.map((item) => (
+            <div
+              key={item.label}
+              className={`rounded-lg border p-3 ${colorMap[item.status]}`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`h-2 w-2 rounded-full ${dotMap[item.status]}`} />
+                <span className="text-xs font-medium">{item.label}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {item.icon}
+                <span className="text-lg font-bold">{item.value}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

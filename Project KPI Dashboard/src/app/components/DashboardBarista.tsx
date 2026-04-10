@@ -1,99 +1,106 @@
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { Alert, AlertDescription } from './ui/alert';
-import { Coffee, Wifi, TrendingUp, AlertTriangle } from 'lucide-react';
 import { useDashboard } from '../contexts/DashboardContext';
-import { LineaNegocio } from '../contexts/RoleContext';
+import { useBusinessConfig } from '../contexts/BusinessConfigContext';
+import { useRole } from '../contexts/RoleContext';
 import { ChecklistBarista } from './ChecklistBarista';
-import { SyncIndicator } from './ui/SyncIndicator';
+import { Coffee, Wifi, TrendingUp, Target } from 'lucide-react';
+import type { LineaNegocio } from '../contexts/RoleContext';
+
+function formatChileno(n: number): string {
+  return Math.round(n).toLocaleString('es-CL');
+}
 
 interface DashboardBaristaProps {
   linea: 'cafe' | 'hotdesk';
 }
 
 export function DashboardBarista({ linea }: DashboardBaristaProps) {
-  const { registros } = useDashboard();
-  const ultimo = registros[0];
+  const { registrosFiltrados } = useDashboard();
+  const { config } = useBusinessConfig();
+  const { profile } = useRole();
 
-  const fmt = (n: number) =>
-    new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
+  const ultimo = registrosFiltrados[0];
 
-  const lineaLabel = linea === 'cafe' ? 'Cafetería' : 'Hotdesk';
-  const LineaIcon = linea === 'cafe' ? Coffee : Wifi;
+  const isCafe = linea === 'cafe';
+  const lineaLabel = isCafe ? 'Cafetería' : 'Hotdesk';
+  const lineaIcon = isCafe
+    ? <Coffee className="h-5 w-5 text-amber-600" />
+    : <Wifi className="h-5 w-5 text-blue-600" />;
+  const accentBg = isCafe ? 'from-amber-50 to-orange-50' : 'from-blue-50 to-cyan-50';
+  const accentBorder = isCafe ? 'border-amber-200' : 'border-blue-200';
+  const accentText = isCafe ? 'text-amber-700' : 'text-blue-700';
 
-  const ventaLinea = ultimo
-    ? (linea === 'cafe' ? ultimo.venta_cafe_clp : ultimo.venta_hotdesk_clp)
+  const venta = ultimo
+    ? isCafe ? ultimo.venta_cafe_clp : ultimo.venta_hotdesk_clp
     : 0;
-
-  const metaLinea = registros.length > 1
-    ? registros.slice(0, 3).reduce((sum, r) =>
-        sum + (linea === 'cafe' ? r.venta_cafe_clp : r.venta_hotdesk_clp), 0
-      ) / Math.min(3, registros.length)
+  const margen = ultimo
+    ? isCafe ? ultimo.margen_cafe_percent : ultimo.margen_hotdesk_percent
     : 0;
-
-  const pctVsMeta = metaLinea > 0 ? (ventaLinea / metaLinea) * 100 : 0;
-  const okVsMeta = pctVsMeta >= 80;
-
-  // Alertas simples para el barista (máx 3, lenguaje simple)
-  const alertas: string[] = [];
-  if (ultimo) {
-    if (linea === 'cafe') {
-      const ticketEst = ultimo.venta_cafe_clp > 0 ? ultimo.venta_cafe_clp / 100 : 0;
-      if (ticketEst < 5000) alertas.push('Ticket promedio bajo — recuerda ofrecer complementos');
-      if (ultimo.venta_cafe_clp < metaLinea * 0.8) alertas.push('Venta de café por debajo de lo esperado hoy');
-    } else {
-      if (ultimo.venta_hotdesk_clp === 0) alertas.push('Sin ventas de Hotdesk registradas hoy');
-    }
-    if (alertas.length < 3 && ultimo.margen_neto_percent < 20) {
-      alertas.push('Margen del día bajo — revisa gastos de turno');
-    }
-  }
 
   return (
-    <div className="min-h-screen bg-background p-4 max-w-sm mx-auto space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-bold flex items-center gap-2">
-            <LineaIcon className="h-5 w-5" />
-            {lineaLabel}
-          </h1>
-          <p className="text-xs text-muted-foreground">Vista de turno</p>
-        </div>
-        <SyncIndicator />
-      </div>
-
-      {/* KPI Principal */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-muted-foreground">Venta del día</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-bold">{fmt(ventaLinea)}</p>
-          <div className="flex items-center gap-2 mt-2">
-            <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
-            <Badge variant={okVsMeta ? 'default' : 'destructive'} className="text-xs">
-              {pctVsMeta.toFixed(0)}% de meta
-            </Badge>
-            <span className="text-xs text-muted-foreground">Meta: {fmt(metaLinea)}</span>
+    <div className={`min-h-screen bg-gradient-to-br ${accentBg} p-4`}>
+      <div className="max-w-md mx-auto space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {lineaIcon}
+            <div>
+              <h1 className="text-xl font-bold text-slate-800">{lineaLabel}</h1>
+              <p className="text-xs text-muted-foreground">{config.nombre_local}</p>
+            </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Alertas del turno */}
-      {alertas.length > 0 && (
-        <div className="space-y-2">
-          {alertas.map((alerta, i) => (
-            <Alert key={i} className="border-amber-200 bg-amber-50">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-amber-800 text-sm">{alerta}</AlertDescription>
-            </Alert>
-          ))}
+          <Badge variant="outline" className={`${accentText} ${accentBorder}`}>
+            {profile.displayName}
+          </Badge>
         </div>
-      )}
 
-      {/* Checklist */}
-      <ChecklistBarista linea={linea as LineaNegocio} />
+        {/* KPI de la línea */}
+        <Card className={`border ${accentBorder}`}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Métricas de hoy</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {ultimo ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="text-center p-3 rounded-lg bg-white border">
+                  <p className="text-xs text-muted-foreground mb-1">Venta</p>
+                  <p className={`text-lg font-bold ${accentText}`}>
+                    ${formatChileno(venta)}
+                  </p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-white border">
+                  <p className="text-xs text-muted-foreground mb-1">Margen</p>
+                  <p className={`text-lg font-bold ${accentText}`}>
+                    {margen.toFixed(1)}%
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Sin datos disponibles
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Checklist */}
+        <ChecklistBarista linea={linea} />
+
+        {/* Tip del día */}
+        <Card className="border-emerald-200 bg-emerald-50">
+          <CardContent className="py-3">
+            <div className="flex items-start gap-2">
+              <Target className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+              <p className="text-xs text-emerald-700">
+                {isCafe
+                  ? '☕ Recuerda ofrecer pastelería con cada café — mejora el ticket promedio.'
+                  : '💻 Ofrece un café "Refill" a los coworkers — aumenta la conversión cruzada.'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,9 @@
-import { BusinessConfig } from '../contexts/BusinessConfigContext';
+import type { BusinessConfig } from '../contexts/BusinessConfigContext';
+import type { DatoDiario } from '../contexts/DashboardContext';
+
+// ============================================================================
+// TYPES
+// ============================================================================
 
 export interface RawSheetRow {
   fecha: string;
@@ -10,82 +15,132 @@ export interface RawSheetRow {
   nota: string;
 }
 
-// Parsea CSV con encabezados. Retorna array de objetos con claves normalizadas.
-function parseCSV(csv: string): RawSheetRow[] {
-  const lines = csv.trim().split('\n').filter(l => l.trim());
+// ============================================================================
+// CSV PARSER
+// ============================================================================
+
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+function normalizeHeader(header: string): string {
+  return header
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '');
+}
+
+// Map from various possible column names to our canonical field names
+const HEADER_MAP: Record<string, keyof RawSheetRow> = {
+  fecha: 'fecha',
+  date: 'fecha',
+  venta_cafe: 'venta_cafe',
+  cafe: 'venta_cafe',
+  venta_hotdesk: 'venta_hotdesk',
+  hotdesk: 'venta_hotdesk',
+  venta_asesorias: 'venta_asesorias',
+  asesorias: 'venta_asesorias',
+  gasto_insumos: 'gasto_insumos',
+  insumos: 'gasto_insumos',
+  gasto_staff_fijo: 'gasto_staff_fijo',
+  staff_fijo: 'gasto_staff_fijo',
+  staff: 'gasto_staff_fijo',
+  nota: 'nota',
+  notas: 'nota',
+  observaciones: 'nota',
+};
+
+export function parseCSV(csv: string): RawSheetRow[] {
+  const lines = csv.split('\n').filter((l) => l.trim().length > 0);
   if (lines.length < 2) return [];
 
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_'));
+  const headers = parseCSVLine(lines[0]).map(normalizeHeader);
 
-  return lines.slice(1).map(line => {
-    // Handle quoted fields with commas inside
-    const values: string[] = [];
-    let current = '';
-    let inQuotes = false;
-    for (const ch of line) {
-      if (ch === '"') { inQuotes = !inQuotes; continue; }
-      if (ch === ',' && !inQuotes) { values.push(current.trim()); current = ''; continue; }
-      current += ch;
-    }
-    values.push(current.trim());
+  // Build column index map
+  const colMap: Partial<Record<keyof RawSheetRow, number>> = {};
+  headers.forEach((h, i) => {
+    const canonical = HEADER_MAP[h];
+    if (canonical) colMap[canonical] = i;
+  });
 
-    const obj: Record<string, string> = {};
-    headers.forEach((h, i) => { obj[h] = values[i] ?? ''; });
+  const rows: RawSheetRow[] = [];
 
-    // Normalize column names from sheet to internal schema
-    return normalizeRow(obj);
-  }).filter(row => row.fecha && row.fecha !== '');
-}
+  for (let i = 1; i < lines.length; i++) {
+    const cells = parseCSVLine(lines[i]);
+    if (cells.length < 2) continue;
 
-// Adapter: maps raw sheet columns → internal RawSheetRow schema
-function normalizeRow(raw: Record<string, string>): RawSheetRow {
-  const num = (key: string, ...aliases: string[]) => {
-    const val = [key, ...aliases].map(k => raw[k]).find(v => v !== undefined && v !== '');
-    return val ? parseFloat(val.replace(/[^0-9.-]/g, '')) || 0 : 0;
-  };
-  const str = (key: string, ...aliases: string[]) => {
-    return [key, ...aliases].map(k => raw[k]).find(v => v !== undefined && v !== '') ?? '';
-  };
+    const getValue = (field: keyof RawSheetRow): string => {
+      const idx = colMap[field];
+      return idx !== undefined && idx < cells.length ? cells[idx] : '';
+    };
 
-  return {
-    fecha: str('fecha', 'date', 'f'),
-    venta_cafe: num('venta_cafe', 'cafe', 'cafeteria', 'venta_cafeter_a'),
-    venta_hotdesk: num('venta_hotdesk', 'hotdesk', 'cowork'),
-    venta_asesorias: num('venta_asesorias', 'asesorias', 'asesor_as', 'consultoria'),
-    gasto_insumos: num('gasto_insumos', 'insumos', 'cogs'),
-    gasto_staff_fijo: num('gasto_staff_fijo', 'staff', 'staff_fijo', 'personal'),
-    nota: str('nota', 'notas', 'notes', 'comment')
-  };
-}
+    const fecha = getValue('fecha');
+    if (!fecha) continue;
 
-const CACHE_KEY = 'dashfin_sheets_cache';
-const CACHE_TS_KEY = 'dashfin_sheets_cache_ts';
-
-// Opción C: Google Sheets CSV export URL (sin auth, para MVP)
-export async function fetchSheetData(config: BusinessConfig): Promise<RawSheetRow[]> {
-  const url = `https://docs.google.com/spreadsheets/d/${config.sheets_id}/export?format=csv&gid=0`;
-
-  try {
-    const response = await fetch(url, { cache: 'no-store' });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const csv = await response.text();
-    const rows = parseCSV(csv);
-
-    // Persist to localStorage as fallback
-    localStorage.setItem(CACHE_KEY, JSON.stringify(rows));
-    localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
-
-    return rows;
-  } catch (err) {
-    console.warn('[sheetsSync] fetch failed, using localStorage fallback', err);
-    const cached = localStorage.getItem(CACHE_KEY);
-    return cached ? JSON.parse(cached) : [];
+    rows.push({
+      fecha,
+      venta_cafe: Number(getValue('venta_cafe')) || 0,
+      venta_hotdesk: Number(getValue('venta_hotdesk')) || 0,
+      venta_asesorias: Number(getValue('venta_asesorias')) || 0,
+      gasto_insumos: Number(getValue('gasto_insumos')) || 0,
+      gasto_staff_fijo: Number(getValue('gasto_staff_fijo')) || 0,
+      nota: getValue('nota'),
+    });
   }
+
+  return rows;
 }
 
-// Returns minutes since last successful sync, or null if never synced
-export function minutesSinceLastSync(): number | null {
-  const ts = localStorage.getItem(CACHE_TS_KEY);
-  if (!ts) return null;
-  return Math.floor((Date.now() - parseInt(ts)) / 60_000);
+// ============================================================================
+// FETCH FROM GOOGLE SHEETS (Opción C: CSV export)
+// ============================================================================
+
+export async function fetchSheetData(config: BusinessConfig): Promise<RawSheetRow[]> {
+  const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(config.sheets_id)}/export?format=csv&gid=0`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Error al obtener datos de Google Sheets: ${response.status}`);
+  }
+  const csv = await response.text();
+  return parseCSV(csv);
+}
+
+// ============================================================================
+// CONVERT RAW ROWS TO DatoDiario (for DashboardContext)
+// ============================================================================
+
+export function rawRowsToDatosDiarios(rows: RawSheetRow[]): DatoDiario[] {
+  return rows.map((row) => {
+    const ventaTotal = row.venta_cafe + row.venta_hotdesk + row.venta_asesorias;
+    const gastoTotal = row.gasto_insumos + row.gasto_staff_fijo;
+    return {
+      fecha: row.fecha,
+      venta_cafe: row.venta_cafe,
+      venta_hotdesk: row.venta_hotdesk,
+      venta_asesorias: row.venta_asesorias,
+      gasto_insumos: row.gasto_insumos,
+      gasto_staff_fijo: row.gasto_staff_fijo,
+      utilidad_neta: ventaTotal - gastoTotal,
+      revpsm: ventaTotal / 25,
+    };
+  });
 }

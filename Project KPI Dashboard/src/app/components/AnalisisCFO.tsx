@@ -44,23 +44,23 @@ const MARGENES_REFERENCIA = {
 export function AnalisisCFO() {
   const { can } = useRole();
   const { config } = useBusinessConfig();
+  const CAPEX_TOTAL = config.capex_total;
+  const DERECHO_LLAVES = config.derecho_llaves;
+  const AREA_M2 = config.metros_cuadrados;
+
   const { registros, metricas } = useDashboard();
   const [tipoAnalisis, setTipoAnalisis] = useState<'margenes' | 'revpsm' | 'mix' | 'escenarios'>('margenes');
   const [loading, setLoading] = useState(true);
+
+  if (!can('view:financial_analysis')) {
+    return <AccessDenied message="Solo disponible para CFO / Admin" />;
+  }
 
   // US-011: Simular carga inicial con useEffect
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 800);
     return () => clearTimeout(timer);
   }, []);
-
-  const CAPEX_TOTAL = config.capex_total;
-  const DERECHO_LLAVES = config.derecho_llaves;
-  const AREA_M2 = config.metros_cuadrados;
-
-  if (!can('view:financial_analysis')) {
-    return <AccessDenied message="Solo disponible para CFO / Admin" />;
-  }
 
   // US-011: Loading State
   if (loading) {

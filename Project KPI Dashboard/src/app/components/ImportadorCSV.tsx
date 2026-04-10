@@ -7,17 +7,28 @@ import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Upload, CheckCircle2, XCircle, Loader2, Download, AlertTriangle } from 'lucide-react';
 import { useDashboard } from '../contexts/DashboardContext';
 import type { RegistroMensualTriple, DatoDiario } from '../contexts/DashboardContext';
+import { useRole } from '../contexts/RoleContext';
+import { useBusinessConfig } from '../contexts/BusinessConfigContext';
+import { AccessDenied } from './ui/AccessDenied';
 import { toast } from 'sonner';
 
-const COGS_CAFE_PERCENT = 0.32;
-const COGS_HOTDESK_PERCENT = 0.075;
-const CAPEX_TOTAL = 37697000;
-const DERECHO_LLAVES = 18900000;
-const METROS_CUADRADOS = 25;
-const UMBRAL_GENIO = 150000;
-
 export function ImportadorCSV() {
+  const { can } = useRole();
+  const { config } = useBusinessConfig();
+
+  // Business constants from config
+  const COGS_CAFE_PERCENT = config.cogs_cafe_pct;
+  const COGS_HOTDESK_PERCENT = config.cogs_hotdesk_pct;
+  const CAPEX_TOTAL = config.capex_total;
+  const DERECHO_LLAVES = config.derecho_llaves;
+  const METROS_CUADRADOS = config.metros_cuadrados;
+  const UMBRAL_GENIO = config.umbral_genio;
+
   const { registros, setRegistros } = useDashboard();
+
+  if (!can('edit:business_data')) {
+    return <AccessDenied message="Solo el administrador puede importar datos." />;
+  }
   
   const [processing, setProcessing] = useState(false);
   const [success, setSuccess] = useState(false);

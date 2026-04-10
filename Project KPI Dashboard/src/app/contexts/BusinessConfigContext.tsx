@@ -1,4 +1,8 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, ReactNode } from 'react';
+
+// ============================================================================
+// TIPOS — Configuración de Negocio
+// ============================================================================
 
 export interface BusinessConfig {
   // Identidad del negocio
@@ -29,7 +33,10 @@ export interface BusinessConfig {
   sync_interval_min: number;
 }
 
-// Valores por defecto (plantilla "híbrido" = Da Pleisë.)
+// ============================================================================
+// VALORES POR DEFECTO — Plantilla "híbrido" = Da Pleisë.
+// ============================================================================
+
 export const DEFAULT_CONFIG: BusinessConfig = {
   nombre_local: 'Da Pleisë.',
   metros_cuadrados: 25,
@@ -45,8 +52,12 @@ export const DEFAULT_CONFIG: BusinessConfig = {
   plantilla_base: 'hibrido',
   sheets_id: '1ZA6bh8Ztgjh2Da4IpciHwgMiXZ9rNPFfGQZi1Vpb9ro',
   sheets_tab: 'Hoja1',
-  sync_interval_min: 30
+  sync_interval_min: 30,
 };
+
+// ============================================================================
+// CONTEXT
+// ============================================================================
 
 interface BusinessConfigContextType {
   config: BusinessConfig;
@@ -54,38 +65,45 @@ interface BusinessConfigContextType {
   resetConfig: () => void;
 }
 
-const BusinessConfigContext = createContext<BusinessConfigContextType>({
-  config: DEFAULT_CONFIG,
-  updateConfig: () => {},
-  resetConfig: () => {}
-});
+const BusinessConfigContext = createContext<BusinessConfigContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'dashfin_business_config';
+const CONFIG_STORAGE_KEY = 'dashfin_business_config';
 
-export function BusinessConfigProvider({ children }: { children: React.ReactNode }) {
-  const [config, setConfig] = useState<BusinessConfig>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        return { ...DEFAULT_CONFIG, ...JSON.parse(saved) };
-      }
-    } catch {
-      // fallback to defaults
+function loadConfigFromStorage(): BusinessConfig {
+  try {
+    const raw = localStorage.getItem(CONFIG_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return { ...DEFAULT_CONFIG, ...parsed };
     }
-    return DEFAULT_CONFIG;
-  });
+  } catch {
+    // ignore
+  }
+  return DEFAULT_CONFIG;
+}
+
+function saveConfigToStorage(config: BusinessConfig): void {
+  try {
+    localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(config));
+  } catch {
+    // ignore
+  }
+}
+
+export function BusinessConfigProvider({ children }: { children: ReactNode }) {
+  const [config, setConfig] = useState<BusinessConfig>(loadConfigFromStorage);
 
   const updateConfig = (partial: Partial<BusinessConfig>) => {
-    setConfig(prev => {
+    setConfig((prev) => {
       const next = { ...prev, ...partial };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      saveConfigToStorage(next);
       return next;
     });
   };
 
   const resetConfig = () => {
-    localStorage.removeItem(STORAGE_KEY);
     setConfig(DEFAULT_CONFIG);
+    saveConfigToStorage(DEFAULT_CONFIG);
   };
 
   return (
@@ -95,6 +113,14 @@ export function BusinessConfigProvider({ children }: { children: React.ReactNode
   );
 }
 
+// ============================================================================
+// HOOK PRINCIPAL
+// ============================================================================
+
 export function useBusinessConfig() {
-  return useContext(BusinessConfigContext);
+  const ctx = useContext(BusinessConfigContext);
+  if (!ctx) {
+    throw new Error('useBusinessConfig must be used within a BusinessConfigProvider');
+  }
+  return ctx;
 }

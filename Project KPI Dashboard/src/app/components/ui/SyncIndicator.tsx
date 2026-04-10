@@ -1,88 +1,67 @@
-import { useState, useEffect } from 'react';
-import { RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { RefreshCw, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from './button';
-import { fetchSheetData, minutesSinceLastSync } from '../../services/sheetsSync';
-import { useBusinessConfig } from '../../contexts/BusinessConfigContext';
+import { useRole } from '../../contexts/RoleContext';
 
 interface SyncIndicatorProps {
-  onSyncComplete?: (rows: any[]) => void;
+  lastSync: Date | null;
+  isSyncing: boolean;
+  error: string | null;
+  onSync: () => void;
 }
 
-export function SyncIndicator({ onSyncComplete }: SyncIndicatorProps) {
-  const { config } = useBusinessConfig();
-  const [syncing, setSyncing] = useState(false);
-  const [minutesAgo, setMinutesAgo] = useState<number | null>(minutesSinceLastSync());
-  const [lastError, setLastError] = useState(false);
+export function SyncIndicator({ lastSync, isSyncing, error, onSync }: SyncIndicatorProps) {
+  const { can } = useRole();
+  const [relativeTime, setRelativeTime] = useState('');
 
-  // Update "X min ago" label every minute
+  const computeRelative = useCallback(() => {
+    if (!lastSync) return 'Sin sincronizar';
+    const diffMs = Date.now() - lastSync.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return 'Hace instantes';
+    if (diffMin < 60) return `Hace ${diffMin} min`;
+    const diffHrs = Math.floor(diffMin / 60);
+    return `Hace ${diffHrs}h ${diffMin % 60}m`;
+  }, [lastSync]);
+
   useEffect(() => {
-    const id = setInterval(() => setMinutesAgo(minutesSinceLastSync()), 60_000);
+    setRelativeTime(computeRelative());
+    const id = setInterval(() => setRelativeTime(computeRelative()), 30_000);
     return () => clearInterval(id);
-  }, []);
-
-  // Auto-sync on mount and then every sync_interval_min minutes
-  useEffect(() => {
-    const doSync = async () => {
-      setSyncing(true);
-      setLastError(false);
-      try {
-        const rows = await fetchSheetData(config);
-        setMinutesAgo(0);
-        onSyncComplete?.(rows);
-      } catch {
-        setLastError(true);
-      } finally {
-        setSyncing(false);
-      }
-    };
-
-    doSync();
-    const id = setInterval(doSync, config.sync_interval_min * 60_000);
-    return () => clearInterval(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.sheets_id, config.sync_interval_min]);
-
-  const handleManualSync = async () => {
-    setSyncing(true);
-    setLastError(false);
-    try {
-      const rows = await fetchSheetData(config);
-      setMinutesAgo(0);
-      onSyncComplete?.(rows);
-    } catch {
-      setLastError(true);
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  const label = (() => {
-    if (syncing) return 'Sincronizando...';
-    if (lastError) return 'Sin conexión (datos locales)';
-    if (minutesAgo === null) return 'Sin sincronizar';
-    if (minutesAgo === 0) return 'Actualizado ahora';
-    if (minutesAgo === 1) return 'Actualizado hace 1 min';
-    return `Actualizado hace ${minutesAgo} min`;
-  })();
+  }, [computeRelative]);
 
   return (
-    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-      {lastError ? (
-        <WifiOff className="h-3.5 w-3.5 text-amber-500" />
+    <div className="flex items-center gap-2 text-xs">
+      {error ? (
+        <span className="flex items-center gap-1 text-amber-600">
+          <AlertTriangle className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Error de sync</span>
+        </span>
+      ) : lastSync ? (
+        <span className="flex items-center gap-1 text-emerald-600">
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">{relativeTime}</span>
+        </span>
       ) : (
-        <Wifi className="h-3.5 w-3.5 text-emerald-500" />
+        <span className="text-muted-foreground hidden sm:inline">Sin datos de Sheets</span>
       )}
-      <span>{label}</span>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-6 px-2 text-xs"
-        onClick={handleManualSync}
-        disabled={syncing}
-      >
-        <RefreshCw className={`h-3 w-3 mr-1 ${syncing ? 'animate-spin' : ''}`} />
-        Sincronizar
-      </Button>
+
+      {can('edit:business_data') && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 p-0"
+          onClick={onSync}
+          disabled={isSyncing}
+          title="Sincronizar ahora"
+        >
+          {isSyncing ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <RefreshCw className="h-3.5 w-3.5" />
+          )}
+        </Button>
+      )}
     </div>
   );
 }

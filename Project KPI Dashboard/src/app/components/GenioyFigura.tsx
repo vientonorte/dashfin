@@ -26,9 +26,6 @@ interface AnalisisGenioFigura {
   status: string;
 }
 
-// Umbral por defecto — se sobrescribe con config desde BusinessConfigContext
-const UMBRAL_GENIO_UTILIDAD_DEFAULT = 150000;
-
 // Función para formatear con puntos de miles chilenos
 const formatChileno = (num: number): string => {
   return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
@@ -62,6 +59,20 @@ export function GenioyFigura() {
   const { can } = useRole();
   const { config } = useBusinessConfig();
 
+  // Derived constants from config
+  const CAPEX = {
+    derecho_llaves: config.derecho_llaves,
+    reserva_sueldos_3m: 10_335_000,
+    total_invertido: config.capex_total,
+  };
+  const LOCAL_INFO = {
+    nombre: config.nombre_local,
+    metros_cuadrados: config.metros_cuadrados,
+  };
+  const UMBRAL_GENIO_UTILIDAD_DEFAULT = config.umbral_genio;
+
+  if (!can('view:payback_analysis')) return null;
+
   const [rowData, setRowData] = useState<RowData>({
     fecha: '',
     venta: 0,
@@ -72,22 +83,14 @@ export function GenioyFigura() {
   const [analisis, setAnalisis] = useState<AnalisisGenioFigura | null>(null);
   const [jsonOutput, setJsonOutput] = useState<string>('');
   const [copied, setCopied] = useState(false);
-  const [googleSheetsUrl] = useState(`https://docs.google.com/spreadsheets/d/${config.sheets_id}/edit?usp=sharing`);
-
-  // Umbral configurable — inicializar desde BusinessConfig
-  const [umbralGenio, setUmbralGenio] = useState(() => config.umbral_genio || UMBRAL_GENIO_UTILIDAD_DEFAULT);
-  const [umbralInput, setUmbralInput] = useState(() => formatChileno(config.umbral_genio || UMBRAL_GENIO_UTILIDAD_DEFAULT));
-
-  if (!can('view:payback_analysis')) return null;
-
-  // CAPEX desde contexto
-  const CAPEX = {
-    derecho_llaves: config.derecho_llaves,
-    total_invertido: config.capex_total
-  };
+  const [googleSheetsUrl] = useState('https://docs.google.com/spreadsheets/d/1ZA6bh8Ztgjh2Da4IpciHwgMiXZ9rNPFfGQZi1Vpb9ro/edit?usp=sharing');
+  
+  // Umbral configurable
+  const [umbralGenio, setUmbralGenio] = useState(UMBRAL_GENIO_UTILIDAD_DEFAULT);
+  const [umbralInput, setUmbralInput] = useState(formatChileno(UMBRAL_GENIO_UTILIDAD_DEFAULT));
 
   const calcularRevPSMDesdeVenta = (venta: number): number => {
-    return Math.round(venta / config.metros_cuadrados);
+    return Math.round(venta / LOCAL_INFO.metros_cuadrados);
   };
 
   const analizarDatos = () => {
@@ -235,7 +238,7 @@ export function GenioyFigura() {
     output += `# Versión: v${version}\n`;
     output += `# Timestamp: ${timestamp}\n`;
     output += `# Registros: ${registros.length}\n`;
-    output += `# Local: ${config.nombre_local} (${config.metros_cuadrados} m²)\n`;
+    output += `# Local: ${LOCAL_INFO.nombre} (${LOCAL_INFO.metros_cuadrados} m²)\n`;
     output += `# CAPEX Total: $${formatChileno(CAPEX.total_invertido)} CLP\n`;
     output += `\n`;
 
@@ -363,7 +366,7 @@ export function GenioyFigura() {
           <Sparkles className="h-8 w-8 text-yellow-500" />
           <h2 className="text-3xl font-bold">Análisis "Genio y Figura"</h2>
         </div>
-        <p className="text-gray-600">{config.nombre_local} • {config.metros_cuadrados} m²</p>
+        <p className="text-gray-600">{LOCAL_INFO.nombre} • {LOCAL_INFO.metros_cuadrados} m²</p>
         <div className="flex justify-center gap-2 flex-wrap">
           <Badge variant="outline">Derecho Llaves: ${formatChileno(CAPEX.derecho_llaves)}</Badge>
           <Badge variant="outline">Reserva 3M: ${formatChileno(CAPEX.reserva_sueldos_3m)}</Badge>
@@ -523,7 +526,7 @@ export function GenioyFigura() {
             <DollarSign className="h-5 w-5" />
             Estructura de Inversión - CAPEX
           </CardTitle>
-          <CardDescription>Local {config.nombre_local}</CardDescription>
+          <CardDescription>Local {LOCAL_INFO.nombre}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -992,7 +995,7 @@ export function GenioyFigura() {
             <CardContent>
               <pre className="p-4 bg-gray-900 text-green-400 rounded-lg overflow-x-auto text-xs font-mono">
 {JSON.stringify({
-  local: config.nombre_local,
+  local: LOCAL_INFO.nombre,
   capex: {
     derecho_llaves: formatChileno(CAPEX.derecho_llaves),
     reserva_sueldos_3m: formatChileno(CAPEX.reserva_sueldos_3m),

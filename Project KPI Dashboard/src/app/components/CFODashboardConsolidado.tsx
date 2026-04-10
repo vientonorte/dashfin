@@ -1,12 +1,12 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
+import { Label } from './ui/label';
 import { Progress } from './ui/progress';
 import { Skeleton } from './ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { BusinessLineCard } from './ui/BusinessLineCard';
 import { 
   BarChart3, 
   TrendingUp, 
@@ -27,14 +27,11 @@ import {
   Webhook, 
   Zap, 
   Globe, 
-  Eye,
-  ArrowRight,
-  CheckCircle2,
-  Upload,
-  Activity
+  Eye 
 } from 'lucide-react';
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useDashboard } from '../contexts/DashboardContext';
+import { useBusinessConfig } from '../contexts/BusinessConfigContext';
 import { TutorialMakeGoogleSheets } from './TutorialMakeGoogleSheets';
 import { GuiaWebhookMake } from './GuiaWebhookMake';
 import { IntegracionB2C } from './IntegracionB2C';
@@ -48,7 +45,7 @@ import { ReportesEjecutivos } from './ReportesEjecutivos';
 import { WebhooksMake } from './WebhooksMake';
 import { AlertasAutomaticas } from './AlertasAutomaticas';
 import { GlosarioTooltip } from './GlosarioTooltip';
-import { TrendCharts } from './TrendCharts';
+import { PanelConfig } from './PanelConfig';
 
 interface VentaData {
   fecha: string;
@@ -58,28 +55,16 @@ interface VentaData {
 }
 
 export function CFODashboardConsolidado() {
-  const { registros, loading } = useDashboard();
+  const { registros } = useDashboard();
+  const { config } = useBusinessConfig();
   const [mesFiltro, setMesFiltro] = useState<string>('todos');
   const [rolFiltro, setRolFiltro] = useState<'cfo' | 'socio-gerente' | 'colaborador'>('cfo');
   const [loadingAnalisis, setLoadingAnalisis] = useState(false);
   
   // Estado de secciones colapsables
-  const [activeTab, setActiveTab] = useState('dashboard');
   const [mostrarDiario, setMostrarDiario] = useState(false);
   const [mostrarConfigAvanzada, setMostrarConfigAvanzada] = useState(false);
   const [mostrarMetasSecundarias, setMostrarMetasSecundarias] = useState(false);
-
-  // Scroll detection for sticky bar smooth appearance
-  const [isSticky, setIsSticky] = useState(false);
-  const stickyBarRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsSticky(window.scrollY > 80);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   // CÁLCULOS
   const formatChileno = (valor: number) => {
@@ -105,12 +90,12 @@ export function CFODashboardConsolidado() {
   }, [registros]);
 
   const margenNeto = metricas ? (metricas.total_utilidad_neta / metricas.total_venta) * 100 : 0;
-  const derechoLlaves = 18900000;
-  const capexTotal = 37697000;
+  const derechoLlaves = config.derecho_llaves;
+  const capexTotal = config.capex_total;
   const utilidadAcumulada = metricas?.total_utilidad_neta || 0;
   const paybackDerecho = utilidadAcumulada > 0 ? (derechoLlaves / utilidadAcumulada * registros.length).toFixed(1) : '∞';
   const paybackCapex = utilidadAcumulada > 0 ? (capexTotal / utilidadAcumulada * registros.length).toFixed(1) : '∞';
-  const revPSM = metricas ? metricas.total_venta / 25 / registros.length : 0;
+  const revPSM = metricas ? metricas.total_venta / config.metros_cuadrados / registros.length : 0;
 
   // Estado de salud financiera
   const saludFinanciera = margenNeto >= 40 ? 'excelente' : margenNeto >= 30 ? 'buena' : margenNeto >= 20 ? 'regular' : 'crítica';
@@ -137,7 +122,6 @@ export function CFODashboardConsolidado() {
 
   // Handler para cambio de tab con skeleton en análisis
   const handleTabChange = (value: string) => {
-    setActiveTab(value);
     if (value === 'analisis') {
       setLoadingAnalisis(true);
       setTimeout(() => setLoadingAnalisis(false), 400);
@@ -146,18 +130,6 @@ export function CFODashboardConsolidado() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50">
-      {loading && (
-        <div className="max-w-[1600px] mx-auto p-4 sm:p-6 space-y-6">
-          <Skeleton className="h-28 w-full rounded-xl" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Skeleton className="h-36 w-full" />
-            <Skeleton className="h-36 w-full" />
-            <Skeleton className="h-36 w-full" />
-          </div>
-          <Skeleton className="h-64 w-full" />
-        </div>
-      )}
-      {!loading && (
       <div className="max-w-[1600px] mx-auto p-4 sm:p-6 space-y-6">
         
         {/* HEADER CON BADGE DE CONSOLIDACIÓN */}
@@ -173,59 +145,69 @@ export function CFODashboardConsolidado() {
                   <p className="text-sm text-gray-600">Retail de Café • 25 m² • 3 Líneas de Negocio</p>
                 </div>
               </div>
-              <Badge className={
-                rolFiltro === 'cfo' ? 'bg-blue-600 text-white text-sm px-3 py-1.5' :
-                rolFiltro === 'socio-gerente' ? 'bg-green-600 text-white text-sm px-3 py-1.5' :
-                'bg-purple-600 text-white text-sm px-3 py-1.5'
-              }>
-                {rolFiltro === 'cfo' ? '👔 CFO' : rolFiltro === 'socio-gerente' ? '🤝 Socio-Gerente' : '👥 Colaborador'}
-              </Badge>
+              <div className="flex flex-col sm:flex-row items-center gap-4">
+                {/* Selector de rol prominente en el header */}
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm font-semibold text-gray-700 whitespace-nowrap">Vista:</Label>
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant={rolFiltro === 'cfo' ? 'default' : 'outline'}
+                      onClick={() => setRolFiltro('cfo')}
+                      className={rolFiltro === 'cfo' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                    >
+                      👔 CFO
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={rolFiltro === 'socio-gerente' ? 'default' : 'outline'}
+                      onClick={() => setRolFiltro('socio-gerente')}
+                      className={rolFiltro === 'socio-gerente' ? 'bg-green-600 hover:bg-green-700' : ''}
+                    >
+                      🤝 Socio
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={rolFiltro === 'colaborador' ? 'default' : 'outline'}
+                      onClick={() => setRolFiltro('colaborador')}
+                      className={rolFiltro === 'colaborador' ? 'bg-purple-600 hover:bg-purple-700' : ''}
+                    >
+                      👥 Colaborador
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  <Badge className="bg-gradient-to-r from-green-600 to-emerald-600 text-white text-base px-4 py-2">
+                    ✨ Arquitectura Consolidada
+                  </Badge>
+                  <p className="text-xs text-gray-600">13 tabs → 4 tabs (-64% complejidad)</p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-
-        {/* BARRA STICKY DE ROL */}
-        <div
-          ref={stickyBarRef}
-          className={`sticky top-0 z-40 border border-gray-200 rounded-xl px-4 py-2 flex items-center justify-between
-            transition-all duration-300 ease-in-out
-            ${isSticky
-              ? 'bg-white/95 backdrop-blur-md shadow-md scale-[1.002]'
-              : 'bg-white/90 backdrop-blur-sm shadow-sm'
-            }`}
-        >
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Vista activa</span>
-          <div className="flex gap-1.5">
-            <Button
-              size="sm"
-              variant={rolFiltro === 'cfo' ? 'default' : 'outline'}
-              onClick={() => setRolFiltro('cfo')}
-              className={rolFiltro === 'cfo' ? 'bg-blue-600 hover:bg-blue-700 h-8 text-xs' : 'h-8 text-xs'}
-            >
-              👔 CFO
-            </Button>
-            <Button
-              size="sm"
-              variant={rolFiltro === 'socio-gerente' ? 'default' : 'outline'}
-              onClick={() => setRolFiltro('socio-gerente')}
-              className={rolFiltro === 'socio-gerente' ? 'bg-green-600 hover:bg-green-700 h-8 text-xs' : 'h-8 text-xs'}
-            >
-              🤝 Socio
-            </Button>
-            <Button
-              size="sm"
-              variant={rolFiltro === 'colaborador' ? 'default' : 'outline'}
-              onClick={() => setRolFiltro('colaborador')}
-              className={rolFiltro === 'colaborador' ? 'bg-purple-600 hover:bg-purple-700 h-8 text-xs' : 'h-8 text-xs'}
-            >
-              👥 Colaborador
-            </Button>
-          </div>
-        </div>
+        {/* ALERTA DE MEJORA */}
+        {registros.length > 0 && (
+          <Alert className="border-2 border-green-300 bg-green-50 shadow-lg">
+            <TrendingUp className="h-5 w-5 text-green-600" />
+            <AlertTitle className="text-green-900 font-bold">🎯 Mejora Aplicada: Arquitectura de Información Optimizada</AlertTitle>
+            <AlertDescription className="text-green-800 text-sm">
+              <p className="mb-2">
+                <strong>Consolidamos 13 tabs en 4 tabs core</strong> eliminando redundancia, flujos desconectados y sobrecarga cognitiva.
+              </p>
+              <ul className="text-xs space-y-1 list-disc list-inside">
+                <li><strong>Dashboard:</strong> Vista única con todos los KPIs + Genio y Figura como widget</li>
+                <li><strong>Datos:</strong> Ingreso mensual/diario unificado + Historial centralizado</li>
+                <li><strong>Análisis:</strong> Informes + Reportes + Integración B2C consolidados</li>
+                <li><strong>Config:</strong> Webhooks + Alertas + Tutoriales agrupados</li>
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* TABS CONSOLIDADAS */}
-        <Tabs value={activeTab} className="space-y-6" onValueChange={handleTabChange}>
+        <Tabs defaultValue="dashboard" className="space-y-6" onValueChange={handleTabChange}>
           <TabsList className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-white p-2 h-auto border-2 border-gray-200 shadow-md">
             <TabsTrigger 
               value="dashboard" 
@@ -251,12 +233,12 @@ export function CFODashboardConsolidado() {
               <FileText className="mr-2 h-5 w-5" />
               Análisis
             </TabsTrigger>
-            <TabsTrigger
-              value="config"
-              className="text-sm py-3 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-amber-500 data-[state=active]:text-white hover:bg-orange-50 transition-all font-semibold"
+            <TabsTrigger 
+              value="config" 
+              className="text-sm py-3 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-gray-600 data-[state=active]:to-slate-600 data-[state=active]:text-white hover:bg-gray-50 transition-all font-semibold"
             >
-              <Zap className="mr-2 h-5 w-5" />
-              Automatización
+              <Settings className="mr-2 h-5 w-5" />
+              Config
             </TabsTrigger>
           </TabsList>
 
@@ -327,7 +309,7 @@ export function CFODashboardConsolidado() {
                   <Card className="border-2 border-orange-200">
                     <CardHeader>
                       <CardTitle className="text-lg">📊 <GlosarioTooltip termino="Payback" /> Derecho de Llaves</CardTitle>
-                      <CardDescription>Recuperación de inversión de $18.900.000</CardDescription>
+                      <CardDescription>Recuperación de inversión de ${formatChileno(derechoLlaves)}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="flex items-center justify-between">
@@ -349,7 +331,7 @@ export function CFODashboardConsolidado() {
                   <Card className="border-2 border-blue-200">
                     <CardHeader>
                       <CardTitle className="text-lg">💰 Payback CAPEX Total</CardTitle>
-                      <CardDescription>Recuperación de inversión total de $37.697.000</CardDescription>
+                      <CardDescription>Recuperación de inversión total de ${formatChileno(capexTotal)}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="flex items-center justify-between">
@@ -444,9 +426,6 @@ export function CFODashboardConsolidado() {
                   </Card>
                 </div>
 
-                {/* TENDENCIAS */}
-                <TrendCharts />
-
                 {/* METAS POR ROL (Widget según filtro) */}
                 {rolFiltro && (
                   <Card className="border-2 border-green-200">
@@ -478,97 +457,13 @@ export function CFODashboardConsolidado() {
                 )}
               </>
             ) : (
-              <Card className="border-2 border-dashed border-gray-300 bg-white">
-                <CardContent className="flex flex-col items-center justify-center py-12 gap-8 text-center">
-                  {/* Hero icon */}
-                  <div className="h-20 w-20 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center shadow-inner">
-                    <Activity className="h-10 w-10 text-blue-500" />
-                  </div>
-
-                  {/* Headline */}
-                  <div className="space-y-2 max-w-sm">
-                    <h2 className="text-2xl font-bold text-gray-800">Comienza tu análisis financiero</h2>
-                    <p className="text-gray-500 text-sm">
-                      Ingresa el primer mes de ventas para ver tus KPIs, payback y estado Genio/Figura en tiempo real.
-                    </p>
-                  </div>
-
-                  {/* 3-step guide */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-lg text-left">
-                    {[
-                      {
-                        step: 1,
-                        icon: Upload,
-                        title: 'Carga datos',
-                        desc: 'CSV, Google Sheets o ingreso manual',
-                        color: 'bg-green-50 border-green-200 text-green-700',
-                        iconBg: 'bg-green-100',
-                        iconColor: 'text-green-600',
-                      },
-                      {
-                        step: 2,
-                        icon: BarChart3,
-                        title: 'Revisa KPIs',
-                        desc: 'Margen, payback y mix de negocio',
-                        color: 'bg-blue-50 border-blue-200 text-blue-700',
-                        iconBg: 'bg-blue-100',
-                        iconColor: 'text-blue-600',
-                      },
-                      {
-                        step: 3,
-                        icon: CheckCircle2,
-                        title: 'Decide y actúa',
-                        desc: 'Alertas automáticas y reportes ejecutivos',
-                        color: 'bg-purple-50 border-purple-200 text-purple-700',
-                        iconBg: 'bg-purple-100',
-                        iconColor: 'text-purple-600',
-                      },
-                    ].map(({ step, icon: Icon, title, desc, color, iconBg, iconColor }) => (
-                      <div key={step} className={`rounded-xl border-2 ${color} p-4 flex flex-col gap-3`}>
-                        <div className="flex items-center gap-2">
-                          <span className={`rounded-lg p-1.5 ${iconBg}`}>
-                            <Icon className={`h-4 w-4 ${iconColor}`} />
-                          </span>
-                          <span className="text-xs font-bold uppercase tracking-wide opacity-60">Paso {step}</span>
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm">{title}</p>
-                          <p className="text-xs opacity-75 mt-0.5">{desc}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Business lines preview */}
-                  <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
-                    {[
-                      { icon: Coffee, label: 'Cafetería', color: 'bg-orange-50 border-orange-200', iconBg: 'bg-orange-100', iconColor: 'text-orange-600' },
-                      { icon: Laptop, label: 'Hotdesk', color: 'bg-blue-50 border-blue-200', iconBg: 'bg-blue-100', iconColor: 'text-blue-600' },
-                      { icon: Briefcase, label: 'Asesorías', color: 'bg-purple-50 border-purple-200', iconBg: 'bg-purple-100', iconColor: 'text-purple-600' },
-                    ].map(({ icon: Icon, label, color, iconBg, iconColor }) => (
-                      <div key={label} className={`rounded-lg border-2 ${color} p-3 flex flex-col items-center gap-2`}>
-                        <span className={`rounded-lg p-2 ${iconBg}`}>
-                          <Icon className={`h-5 w-5 ${iconColor}`} />
-                        </span>
-                        <span className="text-xs font-medium text-gray-600">{label}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Primary CTA */}
-                  <div className="flex flex-col sm:flex-row items-center gap-3">
-                    <Button
-                      size="lg"
-                      className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 transition-all duration-200 hover:shadow-lg hover:scale-[1.02]"
-                      onClick={() => handleTabChange('datos')}
-                    >
-                      <Database className="mr-2 h-5 w-5" />
-                      Cargar primer mes
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>No hay datos</AlertTitle>
+                <AlertDescription>
+                  Ve a la tab <strong>Datos</strong> para ingresar información mensual.
+                </AlertDescription>
+              </Alert>
             )}
           </TabsContent>
 
@@ -650,33 +545,53 @@ export function CFODashboardConsolidado() {
                 </CardHeader>
                 <CardContent className="pt-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <BusinessLineCard
-                      icon={Coffee}
-                      label="Cafetería"
-                      value={metricas.cafe}
-                      marginPercent="68%"
-                      sharePercent={(metricas.cafe / metricas.total_venta) * 100}
-                      accentColor="orange"
-                      formatter={(n) => `$${formatChileno(n)}`}
-                    />
-                    <BusinessLineCard
-                      icon={Laptop}
-                      label="Hotdesk"
-                      value={metricas.hotdesk}
-                      marginPercent="92.5%"
-                      sharePercent={(metricas.hotdesk / metricas.total_venta) * 100}
-                      accentColor="blue"
-                      formatter={(n) => `$${formatChileno(n)}`}
-                    />
-                    <BusinessLineCard
-                      icon={Briefcase}
-                      label="Asesorías"
-                      value={metricas.asesorias}
-                      marginPercent="100%"
-                      sharePercent={(metricas.asesorias / metricas.total_venta) * 100}
-                      accentColor="purple"
-                      formatter={(n) => `$${formatChileno(n)}`}
-                    />
+                    <Card className="border-l-4 border-orange-500">
+                      <CardHeader>
+                        <div className="flex items-center gap-2">
+                          <Coffee className="h-5 w-5 text-orange-600" />
+                          <CardTitle className="text-base">Cafetería</CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold text-orange-600">${formatChileno(metricas.cafe)}</div>
+                        <Badge className="mt-2 bg-orange-500 text-white">Margen: 68%</Badge>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {((metricas.cafe / metricas.total_venta) * 100).toFixed(1)}% del total
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-l-4 border-blue-500">
+                      <CardHeader>
+                        <div className="flex items-center gap-2">
+                          <Laptop className="h-5 w-5 text-blue-600" />
+                          <CardTitle className="text-base">Hotdesk</CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold text-blue-600">${formatChileno(metricas.hotdesk)}</div>
+                        <Badge className="mt-2 bg-blue-500 text-white">Margen: 92.5%</Badge>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {((metricas.hotdesk / metricas.total_venta) * 100).toFixed(1)}% del total
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-l-4 border-purple-500">
+                      <CardHeader>
+                        <div className="flex items-center gap-2">
+                          <Briefcase className="h-5 w-5 text-purple-600" />
+                          <CardTitle className="text-base">Asesorías</CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold text-purple-600">${formatChileno(metricas.asesorias)}</div>
+                        <Badge className="mt-2 bg-purple-500 text-white">Margen: 100%</Badge>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {((metricas.asesorias / metricas.total_venta) * 100).toFixed(1)}% del total
+                        </p>
+                      </CardContent>
+                    </Card>
                   </div>
                 </CardContent>
               </Card>
@@ -798,6 +713,9 @@ export function CFODashboardConsolidado() {
           {/* TAB 4: CONFIGURACIÓN                         */}
           {/* ============================================ */}
           <TabsContent value="config" className="space-y-6">
+            {/* PANEL DE CONFIGURACIÓN DE NEGOCIO */}
+            <PanelConfig />
+
             <Card className="border-2 border-gray-300">
               <CardHeader className="bg-gradient-to-r from-gray-50 to-slate-50">
                 <CardTitle className="text-xl flex items-center gap-2">
@@ -865,11 +783,27 @@ export function CFODashboardConsolidado() {
               </CardContent>
             </Card>
 
+            {/* FUNCIONES OCULTAS/REMOVIDAS */}
+            <Alert className="border-2 border-red-200 bg-red-50">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              <AlertTitle className="text-red-900 font-bold">🗑️ Funciones Removidas en Consolidación</AlertTitle>
+              <AlertDescription className="text-red-800 text-sm">
+                <p className="mb-2">Para reducir complejidad, estas funciones fueron <strong>eliminadas u ocultadas</strong>:</p>
+                <ul className="list-disc list-inside space-y-1 text-xs">
+                  <li><strong>Acciones Rápidas:</strong> Redundante (navegación disponible en tabs)</li>
+                  <li><strong>Auditoría Operativa:</strong> Movida a beta/desarrollo</li>
+                  <li><strong>Sincronización Figma:</strong> Solo para desarrolladores (oculta en producción)</li>
+                  <li><strong>Auditoría Heurística UX:</strong> Movida a documentos externos</li>
+                </ul>
+                <p className="mt-2 text-xs">
+                  <strong>Justificación:</strong> Usuarios finales (CFO, Socio-Gerente, Colaborador) no necesitan herramientas meta/desarrollo en interfaz principal.
+                </p>
+              </AlertDescription>
+            </Alert>
           </TabsContent>
         </Tabs>
 
       </div>
-      )}
     </div>
   );
 }

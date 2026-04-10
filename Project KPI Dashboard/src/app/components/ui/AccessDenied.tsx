@@ -1,18 +1,17 @@
-import { ShieldX } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from './alert';
+import { ShieldAlert } from 'lucide-react';
+import { Card, CardContent } from './card';
 
 interface AccessDeniedProps {
   message?: string;
 }
 
-export function AccessDenied({ message = 'No tienes permisos para ver este contenido.' }: AccessDeniedProps) {
+export function AccessDenied({ message = 'No tienes permiso para ver esta sección.' }: AccessDeniedProps) {
   return (
-    <div className="flex items-center justify-center p-8">
-      <Alert className="max-w-md border-red-200 bg-red-50">
-        <ShieldX className="h-4 w-4 text-red-600" />
-        <AlertTitle className="text-red-800">Acceso restringido</AlertTitle>
-        <AlertDescription className="text-red-700">{message}</AlertDescription>
-      </Alert>
-    </div>
+    <Card className="border-amber-200 bg-amber-50">
+      <CardContent className="flex items-center gap-3 py-6">
+        <ShieldAlert className="h-6 w-6 text-amber-600 shrink-0" />
+        <p className="text-amber-800 text-sm font-medium">{message}</p>
+      </CardContent>
+    </Card>
   );
 }

@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { isSupabaseConfigured, fetchRegistros, upsertRegistros } from '../../lib/supabase';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useBusinessConfig } from './BusinessConfigContext';
 
 // ============================================================================
 // TIPOS - Triple Línea de Negocio (Café + Hotdesk + Asesorías)
@@ -74,11 +74,7 @@ interface DashboardContextType {
   setRegistroActual: (registro: RegistroMensualTriple | null) => void;
   rangoTemporal: '1M' | '3M' | '6M' | '1A' | 'H';
   setRangoTemporal: (rango: '1M' | '3M' | '6M' | '1A' | 'H') => void;
-  searchTerm: string;
-  setSearchTerm: (term: string) => void;
-  cargarDatosDemo: () => void;
   registrosFiltrados: RegistroMensualTriple[];
-  loading: boolean;
   metricas: {
     recuperado: number;
     porcentajeRecuperado: number;
@@ -156,66 +152,30 @@ function guardarEnStorage(registros: RegistroMensualTriple[]): void {
 }
 
 export function DashboardProvider({ children }: { children: ReactNode }) {
+  const { config } = useBusinessConfig();
   const [registros, setRegistrosState] = useState<RegistroMensualTriple[]>([]);
   const [registroActual, setRegistroActual] = useState<RegistroMensualTriple | null>(null);
   const [rangoTemporal, setRangoTemporal] = useState<'1M' | '3M' | '6M' | '1A' | 'H'>('H');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
 
-  // Cargar datos: Supabase primero, localStorage como fallback
+  // Cargar datos desde localStorage o inicializar con simulación
   useEffect(() => {
-    let cancelled = false;
-    async function init() {
-      try {
-        if (isSupabaseConfigured()) {
-          const remote = await fetchRegistros<RegistroMensualTriple>();
-          if (!cancelled && remote.length > 0) {
-            setRegistrosState(remote);
-            guardarEnStorage(remote); // sync local cache
-            return;
-          }
-        }
-        const local = cargarDesdeStorage();
-        if (!cancelled && local.length > 0) {
-          setRegistrosState(local);
-          // If Supabase is configured but empty, push local data up
-          if (isSupabaseConfigured()) {
-            upsertRegistros(local);
-        }
-      }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+    const datos = cargarDesdeStorage();
+    if (datos.length > 0) {
+      setRegistrosState(datos);
     }
-    init();
-    return () => { cancelled = true; };
+    // NO cargar simulación automáticamente - el usuario debe importar sus datos reales
   }, []);
 
-  // Guardar en localStorage + Supabase cuando cambien los registros
-  const setRegistros = useCallback((nuevosRegistros: RegistroMensualTriple[]) => {
+  // Guardar en localStorage cuando cambien los registros
+  const setRegistros = (nuevosRegistros: RegistroMensualTriple[]) => {
     setRegistrosState(nuevosRegistros);
     guardarEnStorage(nuevosRegistros);
-    if (isSupabaseConfigured()) {
-      upsertRegistros(nuevosRegistros);
-    }
-  }, []);
-
-  // Filtrar registros según rango temporal y búsqueda
-  const applySearch = (list: RegistroMensualTriple[]) => {
-    if (!searchTerm.trim()) return list;
-    const term = searchTerm.trim().toLowerCase();
-    return list.filter(r =>
-      r.date.includes(term) ||
-      r.nota.toLowerCase().includes(term) ||
-      r.status.toLowerCase().includes(term) ||
-      r.linea_dominante.toLowerCase().includes(term) ||
-      r.alerta_canibalizacion.toLowerCase().includes(term)
-    );
   };
 
+  // Filtrar registros según rango temporal
   const registrosFiltrados = (() => {
     if (registros.length === 0) return [];
-    if (rangoTemporal === 'H') return applySearch(registros);
+    if (rangoTemporal === 'H') return registros;
 
     const mesesMap = {
       '1M': 1,
@@ -230,13 +190,15 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
     const filtrados = registros.filter(r => new Date(r.date) >= fechaLimite);
     
-    return applySearch(filtrados);
+    console.log(`📊 Filtro ${rangoTemporal}: ${filtrados.length} de ${registros.length} registros (desde ${fechaLimite.toLocaleDateString('es-CL')})`);
+    
+    return filtrados;
   })();
 
   // Calcular métricas globales
   const metricas = (() => {
     const recuperado = registrosFiltrados.reduce((sum, r) => sum + r.utilidad_neta_clp, 0);
-    const porcentajeRecuperado = (recuperado / 37697000) * 100;
+    const porcentajeRecuperado = (recuperado / config.capex_total) * 100;
     const mediaROI = registrosFiltrados.length > 0
       ? registrosFiltrados.reduce((sum, r) => sum + r.roi, 0) / registrosFiltrados.length * 100
       : 0;
@@ -255,9 +217,9 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     const genio = registrosFiltrados.filter(r => r.status === 'Genio').length;
     const figura = registrosFiltrados.filter(r => r.status === 'Figura').length;
 
-    const paybackMeses = mediaROI > 0 && recuperado < 37697000
-      ? Math.ceil(((37697000 - recuperado) / 37697000) / (mediaROI / 100))
-      : recuperado >= 37697000 ? 0 : Infinity;
+    const paybackMeses = mediaROI > 0
+      ? Math.ceil(((config.capex_total - recuperado) / config.capex_total) / (mediaROI / 100))
+      : 999;
 
     // Nuevas métricas por línea
     const totalCafe = registrosFiltrados.reduce((sum, r) => sum + r.margen_cafe_clp, 0);
@@ -312,11 +274,6 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     };
   })();
 
-  const cargarDatosDemo = () => {
-    const demo = generarSimulacion12Meses();
-    setRegistros(demo);
-  };
-
   return (
     <DashboardContext.Provider value={{
       registros,
@@ -325,11 +282,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       setRegistroActual,
       rangoTemporal,
       setRangoTemporal,
-      searchTerm,
-      setSearchTerm,
-      cargarDatosDemo,
       registrosFiltrados,
-      loading,
       metricas
     }}>
       {children}

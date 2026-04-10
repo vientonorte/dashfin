@@ -1,105 +1,116 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Activity, BarChart3, FileText, Coffee, Laptop, Briefcase } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Badge } from './ui/badge';
 import { useDashboard } from '../contexts/DashboardContext';
+import { useBusinessConfig } from '../contexts/BusinessConfigContext';
 import { SaludOperativa } from './SaludOperativa';
 import { AlertasAutomaticas } from './AlertasAutomaticas';
-import { TablaHistorial } from './TablaHistorial';
-import { SyncIndicator } from './ui/SyncIndicator';
-import { BusinessLineCard } from './ui/BusinessLineCard';
-import { useBusinessConfig } from '../contexts/BusinessConfigContext';
+import { Coffee, Wifi, Briefcase, BarChart3, TrendingUp } from 'lucide-react';
+
+function formatChileno(n: number): string {
+  return Math.round(n).toLocaleString('es-CL');
+}
 
 export function DashboardGerente() {
-  const { registros } = useDashboard();
+  const { registrosFiltrados, metricas } = useDashboard();
   const { config } = useBusinessConfig();
-  const ultimo = registros[0];
 
-  const fmt = (n: number) =>
-    new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
-  const fmtPct = (n: number) => `${n.toFixed(1)}%`;
-
-  const totalVenta = ultimo
-    ? ultimo.venta_cafe_clp + ultimo.venta_hotdesk_clp + ultimo.venta_asesoria_clp
-    : 1;
+  const ultimo = registrosFiltrados[0];
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card px-6 py-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 md:p-6">
+      <div className="max-w-5xl mx-auto space-y-6">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold">{config.nombre_local}</h1>
-            <p className="text-sm text-muted-foreground">Vista Gerente Operativo</p>
+            <h1 className="text-2xl font-bold text-slate-800">
+              📊 Panel Operativo
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {config.nombre_local} · Vista Gerente
+            </p>
           </div>
-          <SyncIndicator />
+          <Badge variant="outline" className="text-blue-700 border-blue-300">
+            Gerente
+          </Badge>
         </div>
-      </header>
 
-      <main className="p-6 space-y-6">
-        {/* Semáforo de salud operativa */}
-        <section>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            Salud Operativa
-          </h2>
-          <SaludOperativa />
-        </section>
+        {/* Semáforo de salud */}
+        <SaludOperativa />
 
-        {/* Ventas del día por línea (sin datos de inversión) */}
+        {/* Ventas por línea (sin datos de inversión) */}
         {ultimo && (
-          <section>
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Ventas por Línea — {new Date(ultimo.date).toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <BusinessLineCard
-                icon={Coffee}
-                label="Cafetería"
-                value={ultimo.venta_cafe_clp}
-                marginPercent={fmtPct(ultimo.margen_cafe_percent)}
-                sharePercent={(ultimo.venta_cafe_clp / totalVenta) * 100}
-                accentColor="orange"
-                formatter={fmt}
-              />
-              <BusinessLineCard
-                icon={Laptop}
-                label="Hotdesk"
-                value={ultimo.venta_hotdesk_clp}
-                marginPercent={fmtPct(ultimo.margen_hotdesk_percent)}
-                sharePercent={(ultimo.venta_hotdesk_clp / totalVenta) * 100}
-                accentColor="blue"
-                formatter={fmt}
-              />
-              <BusinessLineCard
-                icon={Briefcase}
-                label="Asesorías"
-                value={ultimo.venta_asesoria_clp}
-                marginPercent={fmtPct(ultimo.margen_asesoria_percent)}
-                sharePercent={(ultimo.venta_asesoria_clp / totalVenta) * 100}
-                accentColor="purple"
-                formatter={fmt}
-              />
-            </div>
-          </section>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Ventas por Línea
+              </CardTitle>
+              <CardDescription>Período actual</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-amber-50 border border-amber-200">
+                  <div className="flex items-center gap-3">
+                    <Coffee className="h-5 w-5 text-amber-700" />
+                    <div>
+                      <p className="font-medium text-sm">Cafetería</p>
+                      <p className="text-xs text-muted-foreground">
+                        Margen: {ultimo.margen_cafe_percent.toFixed(1)}%
+                      </p>
+                    </div>
+                  </div>
+                  <span className="font-bold text-amber-800">
+                    ${formatChileno(ultimo.venta_cafe_clp)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 border border-blue-200">
+                  <div className="flex items-center gap-3">
+                    <Wifi className="h-5 w-5 text-blue-700" />
+                    <div>
+                      <p className="font-medium text-sm">Hotdesk</p>
+                      <p className="text-xs text-muted-foreground">
+                        Margen: {ultimo.margen_hotdesk_percent.toFixed(1)}%
+                      </p>
+                    </div>
+                  </div>
+                  <span className="font-bold text-blue-800">
+                    ${formatChileno(ultimo.venta_hotdesk_clp)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-lg bg-purple-50 border border-purple-200">
+                  <div className="flex items-center gap-3">
+                    <Briefcase className="h-5 w-5 text-purple-700" />
+                    <div>
+                      <p className="font-medium text-sm">Asesorías</p>
+                      <p className="text-xs text-muted-foreground">
+                        Margen: {ultimo.margen_asesoria_percent.toFixed(1)}%
+                      </p>
+                    </div>
+                  </div>
+                  <span className="font-bold text-purple-800">
+                    ${formatChileno(ultimo.venta_asesoria_clp)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-100 border border-slate-300 mt-2">
+                  <div className="flex items-center gap-3">
+                    <TrendingUp className="h-5 w-5 text-slate-700" />
+                    <span className="font-medium text-sm">Total</span>
+                  </div>
+                  <span className="font-bold text-slate-800">
+                    ${formatChileno(ultimo.venta_total_clp)}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
-        {/* Tabs: Alertas + Historial */}
-        <Tabs defaultValue="alertas">
-          <TabsList>
-            <TabsTrigger value="alertas">Alertas operativas</TabsTrigger>
-            <TabsTrigger value="historial">
-              <FileText className="h-3.5 w-3.5 mr-1" />
-              Historial
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="alertas" className="mt-4">
-            <AlertasAutomaticas />
-          </TabsContent>
-          <TabsContent value="historial" className="mt-4">
-            <TablaHistorial />
-          </TabsContent>
-        </Tabs>
-      </main>
+        {/* Alertas operativas */}
+        <AlertasAutomaticas />
+      </div>
     </div>
   );
 }
