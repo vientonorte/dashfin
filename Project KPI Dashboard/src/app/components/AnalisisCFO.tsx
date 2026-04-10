@@ -482,26 +482,26 @@ export function AnalisisCFO() {
                     <h3 className="font-semibold text-lg">Detalle por Línea de Negocio</h3>
                     {analisisMargenes.lineas.map((linea) => {
                       const Icon = linea.icon;
-                      const colorClasses = {
-                        orange: { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-600', badge: 'bg-orange-500' },
-                        blue: { bg: 'bg-blue-50', border: 'border-blue-300', text: 'text-blue-600', badge: 'bg-blue-500' },
-                        purple: { bg: 'bg-purple-50', border: 'border-purple-300', text: 'text-purple-600', badge: 'bg-purple-500' }
-                      }[linea.color];
+					  const colorClasses = {
+					    orange: { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-600', badge: 'bg-orange-500' },
+					    blue: { bg: 'bg-blue-50', border: 'border-blue-300', text: 'text-blue-600', badge: 'bg-blue-500' },
+					    purple: { bg: 'bg-purple-50', border: 'border-purple-300', text: 'text-purple-600', badge: 'bg-purple-500' }
+					  }[linea.color] || { bg: '', border: '', text: '', badge: '' };
 
                       return (
-                        <Card key={linea.nombre} className={`border-2 ${colorClasses.border}`}>
+                        <Card key={linea.nombre} className={`border-2 ${colorClasses.border || ''}`}>
                           <CardContent className="pt-6">
                             <div className="flex items-center justify-between mb-4">
                               <div className="flex items-center gap-3">
-                                <div className={`p-3 rounded-lg ${colorClasses.bg}`}>
-                                  <Icon className={`h-6 w-6 ${colorClasses.text}`} />
+                                <div className={`p-3 rounded-lg ${colorClasses.bg || ''}`}>
+                                  <Icon className={`h-6 w-6 ${colorClasses.text || ''}`} />
                                 </div>
                                 <div>
                                   <h4 className="font-semibold text-lg">{linea.nombre}</h4>
                                   <p className="text-sm text-gray-600">Venta: ${formatChileno(linea.venta)}</p>
                                 </div>
                               </div>
-                              <Badge className={colorClasses.badge}>
+                              <Badge className={colorClasses.badge || ''}>
                                 Margen: {linea.margenTeorico}%
                               </Badge>
                             </div>
@@ -606,7 +606,7 @@ export function AnalisisCFO() {
                         orange: 'border-orange-300 bg-orange-50',
                         blue: 'border-blue-300 bg-blue-50',
                         purple: 'border-purple-300 bg-purple-50'
-                      }[linea.color];
+                      }[linea.color] || '';
 
                       return (
                         <Card key={linea.nombre} className={`border-2 ${colorClasses}`}>

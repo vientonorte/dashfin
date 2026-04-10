@@ -74,11 +74,11 @@ export function CFODashboardConsolidado() {
   // Bug #2 fix: wrap metrics in useMemo to avoid recalculation on every render
   const metricas = useMemo(() => {
     if (registros.length === 0) return null;
-    const total_venta = registros.reduce((acc, r) => acc + r.cafe + r.hotdesk + r.asesorias, 0);
-    const total_costos = registros.reduce((acc, r) => acc + r.costo_cafe + r.costo_hotdesk + r.costo_asesorias + r.costo_laboral + r.costo_fijo, 0);
-    const cafe = registros.reduce((acc, r) => acc + r.cafe, 0);
-    const hotdesk = registros.reduce((acc, r) => acc + r.hotdesk, 0);
-    const asesorias = registros.reduce((acc, r) => acc + r.asesorias, 0);
+    const total_venta = registros.reduce((acc, r) => acc + (r.venta_cafe_clp || 0) + (r.venta_hotdesk_clp || 0) + (r.venta_asesoria_clp || 0), 0);
+    const total_costos = registros.reduce((acc, r) => acc + (r.cogs_cafe_clp || 0) + (r.cogs_hotdesk_clp || 0) + (r.cogs_asesoria_clp || 0) + (r.gastos_operacion_clp || 0), 0);
+    const cafe = registros.reduce((acc, r) => acc + (r.venta_cafe_clp || 0), 0);
+    const hotdesk = registros.reduce((acc, r) => acc + (r.venta_hotdesk_clp || 0), 0);
+    const asesorias = registros.reduce((acc, r) => acc + (r.venta_asesoria_clp || 0), 0);
     return {
       total_venta,
       total_costos,
@@ -106,10 +106,10 @@ export function CFODashboardConsolidado() {
 
   // Data para gráficos
   const chartData: VentaData[] = registros.map(r => ({
-    fecha: r.fecha,
-    ventaTotal: r.cafe + r.hotdesk + r.asesorias,
-    utilidadNeta: (r.cafe + r.hotdesk + r.asesorias) - (r.costo_cafe + r.costo_hotdesk + r.costo_asesorias + r.costo_laboral + r.costo_fijo),
-    margenNeto: ((r.cafe + r.hotdesk + r.asesorias) - (r.costo_cafe + r.costo_hotdesk + r.costo_asesorias + r.costo_laboral + r.costo_fijo)) / (r.cafe + r.hotdesk + r.asesorias) * 100
+    fecha: r.date,
+    ventaTotal: (r.venta_cafe_clp || 0) + (r.venta_hotdesk_clp || 0) + (r.venta_asesoria_clp || 0),
+    utilidadNeta: ((r.venta_cafe_clp || 0) + (r.venta_hotdesk_clp || 0) + (r.venta_asesoria_clp || 0)) - ((r.cogs_cafe_clp || 0) + (r.cogs_hotdesk_clp || 0) + (r.cogs_asesoria_clp || 0) + (r.gastos_operacion_clp || 0)),
+    margenNeto: (((r.venta_cafe_clp || 0) + (r.venta_hotdesk_clp || 0) + (r.venta_asesoria_clp || 0)) - ((r.cogs_cafe_clp || 0) + (r.cogs_hotdesk_clp || 0) + (r.cogs_asesoria_clp || 0) + (r.gastos_operacion_clp || 0))) / (((r.venta_cafe_clp || 0) + (r.venta_hotdesk_clp || 0) + (r.venta_asesoria_clp || 0)) || 1) * 100
   }));
 
   const lineaData = metricas ? [
